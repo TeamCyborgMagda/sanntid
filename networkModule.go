@@ -1,17 +1,20 @@
 package main
 
 import (
-    	 "fmt" 
-	 "net"
+    "fmt" 
+	"net"
 	"time"
 )
+
+//		initializes the pc's ip adress, standard master port and the UDP broadcast connection 
 func Init()(string, string, *UDPConn) {
 //	step 1) "finne pc'ens ip'
 // 	step 2) "finne master port"				
 //  step 3) "opprett UDP(?) broadcast listner/connection"
-// 	returns 3 variables, brodcast_listner/connection, ip, port (?)
+// 	returns 3 variables, brodcast_connection, ip, port (?)
 }
 
+//			initializes/reset state, resets/initialize number of slaves, and initialize master-ip, initialize connections array		
 func StateInit(connection *UDPConn)(int, string, string){
 //	step 1) "høre på broadcast i en viss tid"
 //	step 2) if setning
@@ -34,19 +37,18 @@ func ConnectMaster(adress string)(*TCPConn, error){
 	return conn, err 
 }
 
-func network(){
+func NetworkModule(){
 //udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?
 	ip, master_port, broadcast_conn := Init()
-// for lopp forever
+//	for puppies == True{
 	nr_of_slaves, state, master_adress := StateInit(broadcast_conn)	//"initialiser verdier, bestemme funksjon" 
 // 							master loop, n = number of slaves
 // 						(slave nr. 1 is the successor(?) neccesary?)
-// 	for state = "master"
-//		if (CheckConnection()==False){
+// 	for (state=="master"){
+//		if !CheckConnection(state){
 //			break
 //		}
-//		broadcast_conn.Write("i'm the master, find me at ip")
-//		broadcast_conn.Read(broadcast_data)
+//		broadcast_conn.Write("Master: " + ip)
 //		if (slave blir identifisert){
 //			connections[nr_of_slaves],err = MakeSlave(master_port)
 //			if err != nil
@@ -70,13 +72,14 @@ func network(){
 //	}			
 //									Slave loop
 //	for state = "slave"
-//		if !checkConnections(){
+//		if !CheckConnection(state){
 //			break						
 //		}
 //		ReadElevatorStatus()
 //		connection.Write(data)
 //		connection.Read(data)
 //		HandleMastersOrders()
+//	}
 }
 
 func such_network() {
