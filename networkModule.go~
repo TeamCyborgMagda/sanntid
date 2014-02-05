@@ -1,0 +1,53 @@
+package main
+
+import (
+    	 "fmt" 
+	 "net"
+	"time"
+)
+func init(){
+//	 step 1) "finne pc'ens ip'
+// 	step 2) "finne pc'ens karakteristiske port"				
+//  	step 3) "oprett UDP(?) broadcast listner" 
+// 	Find a master (høre på broadcast)
+//	connect to the masta
+//  	if not, BECOME THE MASTER
+// 	returns 3 variables, state, ip, port (?)
+}
+
+func network(){
+//udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?
+//	ip, port, osv := init()			 "initialiser verdier, bestemme funksjon" 
+// master loop, n = number of slaves
+// (slave nr. 1 is the successor)
+//	broadcast_master_adress() 
+//	connections[n] = listener.accept() 	"legger slavene inn i en liste med slaver. n++, om man legger til en ny."
+//	if !checkConnections()
+//		handle it	  "Kjøre hele network på nytt?"
+//	
+//	Read_elevator_status()	
+//	for connection in connections{
+//		connection.ReadData(data)
+//	}
+//	ProsseserData()
+//	Write_new_elevator_status()
+//	for connection in connections{
+//		connection.WriteData(ProsessertData)
+//	}
+//slave part
+//	connection = connect(master adress)
+//Slave loop
+//	if !checkConnections()
+//		handle it					//Kjøre hele network på nytt?
+//
+//	Read_elevator_status()
+//	connection.Write()
+//	connection.Read(Masters_Orders)
+//	Handle_masters_orders()
+}
+
+func such_network() {
+	much_TCP()
+	wow()
+
+}
