@@ -8,16 +8,19 @@ import (
 )
 
 //		initializes the pc's ip adress, standard master port and the UDP broadcast connection 
-func Init()(string, string, *net.UDPConn, error) {
+func Init()(string, string, *net.UDPConn,*net.UDPConn, error) {
 	AllAddr, err := net.InterfaceAddrs()
 	if err != nil{
 		fmt.Println("couldn't find ip")
 	}
 	ip := strings.Split(AllAddr[1].String(),"/")[0]
 	port := ":33546"
-	adress, err := net.ResolveUDPAddr("udp", ":20002")
-	conn, err := net.ListenUDP("udp4",adress)
-	return ip, port, conn, err
+	l_adress, err := net.ResolveUDPAddr("udp", ":20002")
+	listen, err := net.ListenUDP("udp4",l_adress)
+
+	w_adress, err := net.ResolveUDPAddr("udp", "192.168.0.255"+":20002")
+	conn, err := net.DialUDP("udp",nil,w_adress)
+	return ip, port, listen, conn,  err
 
 // 	returns 3 variables, brodcast_connection, ip, port (?)
 }
@@ -30,6 +33,7 @@ func StateInit(conn *net.UDPConn)(string, string){
 		_,err := conn.Read(buffer)
 		if err != nil{
 //	step) hvis man ikke hører en master, returner "master" + "nil"
+			fmt.Println(err)			
 			return "master", ""
 		}
 //	step) hvis man hørte en master, returner "slave" + ip adresse  
@@ -59,10 +63,10 @@ func ConnectMaster(adress string)(*net.TCPConn, error){
 
 func NetworkModule(){
 //udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?
-	ip, master_port, broadcast_conn, err := Init()
+	ip, master_port, broadcast_listener, broadcast_writer, err := Init()
 	fmt.Println("Init gikk bra")
 	for{
-		state, master_adress := StateInit(broadcast_conn)	//bestemme funksjon
+		state, master_adress := StateInit(broadcast_listener)	//bestemme funksjon
 		fmt.Println("State init gikk bra")
 		connections := make([]net.Conn,10)
 		nr_of_slaves := 0
@@ -72,7 +76,7 @@ func NetworkModule(){
 //				break
 //			}
 			fmt.Println("Heisen er en master")
-			broadcast_conn.Write([]byte(ip+"\x00"))
+			broadcast_writer.Write([]byte(ip+"\x00"))
 			slave_listener, err := SlaveListener(master_port)
 			slave_listener.SetDeadline(time.Now().Add(2*time.Second))
 			connections[nr_of_slaves],err = slave_listener.Accept()
