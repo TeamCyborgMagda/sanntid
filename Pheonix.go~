@@ -1,0 +1,73 @@
+package main
+
+import (
+    "net"
+    "fmt"
+    "strings"
+    "time"
+    "strconv"
+    "os/exec"
+)
+
+
+
+func UDPlistner(ip string, port string) (int){
+	adress, err := net.ResolveUDPAddr("udp", port)
+	conn, err := net.ListenUDP("udp4",adress)
+	if err != nil{
+		fmt.Println(err)		
+		return 0
+	}
+	number := 0
+	buffer := make([]byte,128) 	
+	for{ 
+		conn.SetDeadline(time.Now().Add(4*time.Second))
+		_,err := conn.Read(buffer)
+		if err != nil {
+			conn.Close()
+			return number
+		}
+		readInt:=string(buffer)
+        number,_=strconv.Atoi(strings.Split(readInt, "\x00")[0])
+		fmt.Println("Updated number")
+	}
+	
+}
+
+func UDPwriter(conn *net.UDPConn, number int){
+	Snum:=strconv.Itoa(number)+"\x00"
+    Bmessage:=[]byte(Snum)
+    conn.Write(Bmessage)
+}
+
+func makeSocket(ip string, port string)(*net.UDPConn){
+	adress, err := net.ResolveUDPAddr("udp", ip+port)
+	conn, err := net.DialUDP("udp",nil,adress)
+	if err != nil {return nil}
+	return conn
+}
+
+func getIPandPort()(string, string){
+	AllAddr, err := net.InterfaceAddrs()
+	if err != nil{
+		fmt.Println("SHITS FUCKED UP!")
+		return "", 	":20002"
+	}
+	return strings.Split(AllAddr[1].String(),"/")[0] , ":20002"
+	
+} 
+
+func main(){
+	ip, port := getIPandPort()	
+	number := UDPlistner(ip, port)
+	cmd:=exec.Command("mate-terminal","-x","go","run","Pheonix.go")
+    cmd.Run()
+	socket := makeSocket(ip, port)
+	for{
+		number = number +1
+		fmt.Println(number)
+		UDPwriter(socket, number)
+		time.Sleep(1*time.Second)		
+		
+	}
+}

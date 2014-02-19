@@ -58,7 +58,37 @@ func ConnectMaster(adress string)(*net.TCPConn, error){
 }
 
 
-
+func CheckConnection(state string, master_ip string, broadcast_listener *net.UDPConn, ip string)(int){
+	buffer := make([]byte, 128)
+	var read_ip string	
+	if state == "slave"{
+		broadcast_listener.SetDeadline(time.Now().Add(400*time.Millisecond))		
+		_,err := broadcast_listener.Read(buffer)
+		if err != nil{
+			return 0
+		}		
+		read_ip =string(buffer)
+        master_ip_r:= strings.Split(read_ip, "\x00")[0]
+		if master_ip_r != master_ip{
+			return 0
+		}
+	}
+	if state == "master"{
+		broadcast_listener.SetDeadline(time.Now().Add(400*time.Millisecond))		
+		_,err := broadcast_listener.Read(buffer)
+		read_ip := string(buffer)				
+		if err != nil{
+			fmt.Println("skjekk: ", err)
+		}		
+		read_ip =string(buffer)
+        master_ip_r:= strings.Split(read_ip, "\x00")[0]
+		if master_ip_r != ip{
+			fmt.Println("nummer to trigger også!: ", master_ip_r)
+		}
+	}
+	return 1
+ 
+}
 
 
 func NetworkModule(){
@@ -73,7 +103,7 @@ func NetworkModule(){
 		nr_of_slaves := 0
  		slave_listener, err := SlaveListener(master_port)		//			master loop, n = number of slaves 					
  		for (state=="master"){
-//			if !CheckConnection(state, connections){
+//			if CheckConnection(state, master_adress,broadcast_listener,ip) != 1{
 //				break
 //			}
 			fmt.Println("Heisen er en master")
@@ -105,7 +135,6 @@ func NetworkModule(){
 			connections[0],err = ConnectMaster(master_adress + master_port)
 			if err != nil{
 				fmt.Println("Cannot connect to master: ", err);
- 			
 			}		
 		}			
 //									Slave loop
