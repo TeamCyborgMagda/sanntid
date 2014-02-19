@@ -16,7 +16,7 @@ func Init()(string, string, *net.UDPConn,*net.UDPConn, error) {
 	ip := strings.Split(AllAddr[1].String(),"/")[0]
 	port := ":33546"
 	l_adress, err := net.ResolveUDPAddr("udp", ":20002")
-	listen, err := net.ListenUDP("udp4",l_adress)
+	listen, err := net.ListenUDP("udp",l_adress)
 
 	w_adress, err := net.ResolveUDPAddr("udp", "192.168.0.255"+":20002")
 	conn, err := net.DialUDP("udp",nil,w_adress)
@@ -29,7 +29,7 @@ func Init()(string, string, *net.UDPConn,*net.UDPConn, error) {
 func StateInit(conn *net.UDPConn)(string, string){
 	buffer := make([]byte,128)
 	for{ 
-		conn.SetDeadline(time.Now().Add(4*time.Second))
+		conn.SetDeadline(time.Now().Add(6*time.Second))
 		_,err := conn.Read(buffer)
 		if err != nil{
 //	step) hvis man ikke hører en master, returner "master" + "nil"
@@ -65,23 +65,24 @@ func NetworkModule(){
 //udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?
 	ip, master_port, broadcast_listener, broadcast_writer, err := Init()
 	fmt.Println("Init gikk bra")
+	if err != nil{return}
 	for{
 		state, master_adress := StateInit(broadcast_listener)	//bestemme funksjon
 		fmt.Println("State init gikk bra")
 		connections := make([]net.Conn,10)
 		nr_of_slaves := 0
-// 							master loop, n = number of slaves 					
+ 		slave_listener, err := SlaveListener(master_port)		//			master loop, n = number of slaves 					
  		for (state=="master"){
 //			if !CheckConnection(state, connections){
 //				break
 //			}
 			fmt.Println("Heisen er en master")
 			broadcast_writer.Write([]byte(ip+"\x00"))
-			slave_listener, err := SlaveListener(master_port)
+			
 			slave_listener.SetDeadline(time.Now().Add(2*time.Second))
 			connections[nr_of_slaves],err = slave_listener.Accept()
 			if err != nil{
-				fmt.Println("Finner ingen slaver")
+				fmt.Println("Finner ingen slaver: ", err)
 			}			
 			if err == nil{
 				nr_of_slaves = nr_of_slaves + 1
