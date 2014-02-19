@@ -7,19 +7,35 @@ import (
 )
 
 //		initializes the pc's ip adress, standard master port and the UDP broadcast connection 
-func Init()(string, string, *UDPConn) {
-//	step 1) "finne pc'ens ip'
-// 	step 2) "finne master port"				
-//  step 3) "opprett UDP(?) broadcast listner/connection"
+func Init()(string, string, *UDPConn, error) {
+	AllAddr, err := net.InterfaceAddrs()
+	if err != nil{
+		fmt.Println("couldn't find ip")
+	}
+	ip := strings.Split(AllAddr[1].String(),"/")[0]
+	port := ":33546"
+	adress, err := net.ResolveUDPAddr("udp", ":20002")
+	conn, err := net.ListenUDP("udp4",adress)
+	return ip, port, conn, err
+
 // 	returns 3 variables, brodcast_connection, ip, port (?)
 }
 
 //			initializes/reset state, resets/initialize number of slaves, and initialize master-ip, initialize connections array		
-func StateInit(connection *UDPConn)(int, string, string){
-//	step 1) "høre på broadcast i en viss tid"
-//	step 2) if setning
-//	step 3) hvis man hørte en master, returner "slave" + ip adresse  
-//	step 3.1) hvis man ikke hører en master, returner "master" + "nil"
+func StateInit(conn *UDPConn)(string, string){
+	buffer := make([]byte,128)
+	for{ 
+		conn.SetDeadline(time.Now().Add(4*time.Second))
+		_,err := conn.Read(buffer)
+		if err != nil{
+//	step) hvis man ikke hører en master, returner "master" + "nil"
+			return "master", ""
+		}
+//	step) hvis man hørte en master, returner "slave" + ip adresse  
+		read_ip:=string(buffer)
+        master_ip,_:= strings.Split(read_ip, "\x00")[0]
+		return "slave", master_ip
+	}
 }
 
 //		Listens for slaves and returns the slave connection
@@ -37,53 +53,61 @@ func ConnectMaster(adress string)(*TCPConn, error){
 	return conn, err 
 }
 
+
+
+
+
 func NetworkModule(){
 //udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?
-	ip, master_port, broadcast_conn := Init()
-//	for puppies == True{
-	nr_of_slaves, state, master_adress := StateInit(broadcast_conn)	//"initialiser verdier, bestemme funksjon" 
-// 							master loop, n = number of slaves
-// 						(slave nr. 1 is the successor(?) neccesary?)
-// 	for (state=="master"){
-//		if !CheckConnection(state){
-//			break
-//		}
-//		broadcast_conn.Write("Master: " + ip)
-//		if (slave blir identifisert){
-//			connections[nr_of_slaves],err = MakeSlave(master_port)
-//			if err != nil
-//				continue
-//			nr_of_slaves++
-//      }
-//		for connection in connections{
-//			connection.Write("HAI there")
-//			connection.Read(data)
-//			fmt.printf(string(data))
-//		}	
+	ip, master_port, broadcast_conn, err := Init()
+	for{
+		state, master_adress := StateInit(broadcast_conn)	//bestemme funksjon
+		connections := make([]*net.TCPConn,10)
+		nr_of_slaves := 0
+// 							master loop, n = number of slaves 					
+ 		for (state=="master"){
+//			if !CheckConnection(state, connections){
+//				break
+//			}
+			broadcast_conn.Write(ip)
+			connections[nr_of_slaves],err = MakeSlave(master_port)
+			if err != nil{
+				nr_of_slaves = nr_of_slaves + 1
+   			}
+			i := 0
+			buffer := make([]byte, 128)
+			for i < nr_of_slaves {
+				connections[i].Write("HAI there")
+				connection[i].Read(buffer)
+				fmt.printf(string(buffer))
+				i += 1
+			}	
+		}
 // 		"Videre: prossesering av data og sending av informasjon til slaver
 
 
-// 	if state = "slave" {
-//		connection,err := ConnectMaster(master_adress + master_port)
-//		if err != nil{
-//			fmt.Println("Cannot connect to master: ", err);
-// 			continue
-//		}		
-//	}			
+ 		if state == "slave" {
+			connections[nr_of_slaves],err := ConnectMaster(master_adress + master_port)
+			if err != nil{
+				fmt.Println("Cannot connect to master: ", err);
+ 			
+			}		
+		}			
 //									Slave loop
-//	for state = "slave"
-//		if !CheckConnection(state){
-//			break						
-//		}
-//		ReadElevatorStatus()
-//		connection.Write(data)
-//		connection.Read(data)
-//		HandleMastersOrders()
-//	}
+		for state == "slave"{
+//			if !CheckConnection(state){
+//				break						
+//			}
+//			ReadElevatorStatus()
+			buffer := make([]byte, 128)
+			connections[nr_of_slaves].Write("bai there")
+			connections[nr_of_slaves].Read(buffer)
+			fmt.printf(string(buffer))
+//			HandleMastersOrders()
+		}
+	}
 }
 
-func such_network() {
-	much_TCP()
-	wow()
-
+func main(){
+	NetworkModule()
 }
