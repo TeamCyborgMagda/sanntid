@@ -4,6 +4,7 @@ import (
     "fmt" 
 	"net"
 	"time"
+	"strings"
 )
 
 //		initializes the pc's ip adress, standard master port and the UDP broadcast connection 
@@ -81,7 +82,8 @@ func NetworkModule(){
 				connection[i].Read(buffer)
 				fmt.printf(string(buffer))
 				i += 1
-			}	
+			}
+			time.Sleep(0.1*time.Second)	
 		}
 // 		"Videre: prossesering av data og sending av informasjon til slaver
 
