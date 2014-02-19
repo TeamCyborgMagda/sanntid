@@ -18,7 +18,7 @@ func Init()(string, string, *net.UDPConn,*net.UDPConn, error) {
 	l_adress, err := net.ResolveUDPAddr("udp", ":20002")
 	listen, err := net.ListenUDP("udp",l_adress)
 
-	w_adress, err := net.ResolveUDPAddr("udp", "192.168.0.255"+":20002")
+	w_adress, err := net.ResolveUDPAddr("udp", "129.241.187.255"+":20002")
 	conn, err := net.DialUDP("udp",nil,w_adress)
 	return ip, port, listen, conn,  err
 
@@ -33,7 +33,7 @@ func StateInit(conn *net.UDPConn)(string, string){
 		_,err := conn.Read(buffer)
 		if err != nil{
 //	step) hvis man ikke hører en master, returner "master" + "nil"
-			fmt.Println(err)			
+			fmt.Println("finner ingen master", err )			
 			return "master", ""
 		}
 //	step) hvis man hørte en master, returner "slave" + ip adresse  
@@ -78,7 +78,7 @@ func NetworkModule(){
 //			}
 			fmt.Println("Heisen er en master")
 			broadcast_writer.Write([]byte(ip+"\x00"))
-			
+			fmt.Println(ip)
 			slave_listener.SetDeadline(time.Now().Add(2*time.Second))
 			connections[nr_of_slaves],err = slave_listener.Accept()
 			if err != nil{
