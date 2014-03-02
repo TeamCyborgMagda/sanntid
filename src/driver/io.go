@@ -1,9 +1,8 @@
 package driver
-/*
-#cgo LDFLAGS: -lcomedi -lm
-#include "io.h"
-*/
 
+// #cgo CFLAGS: -std=c99 -g -Wall -O2 -I . -MMD
+// #cgo LDFLAGS: -lpthread -lcomedi -g -lm
+// #include "io.h"
 import "C"
 
 func IoInit()(int){

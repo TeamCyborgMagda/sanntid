@@ -58,7 +58,7 @@ func ConnectMaster(adress string)(*net.TCPConn, error){
 	return conn, err 
 }
 
-
+/*
 func CheckConnection(state string, master_ip string, broadcast_listener *net.UDPConn, ip string)(int){
 	buffer := make([]byte, 128)
 	var read_ip string	
@@ -90,7 +90,7 @@ func CheckConnection(state string, master_ip string, broadcast_listener *net.UDP
 	return 1
  
 }
-
+*/
 
 func NetworkModule(){
 //udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?

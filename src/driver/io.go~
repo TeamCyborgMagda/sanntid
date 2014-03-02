@@ -1,6 +1,7 @@
 package driver
 /*
-#cgo LDFLAGS: -lcomedi -lm
+#cgo CFLAGS: -std=c99 -g -Wall -O2 -I . -MMD
+#cgo LDFLAGS: -lpthread -lcomedi -g -lm
 #include "io.h"
 */
 
@@ -23,10 +24,10 @@ func IoWriteAnalog(channel int, value int){
 }
 
 func IoReadBit(channel int)(int){
-    return int(C.io_read_bit(int(channel)))
+    return int(C.io_read_bit(C.int(channel)))
 }
 
 func IoReadAnalog(channel int)(int){
-    return int(C.io_read_analog(int(channel)))
+    return int(C.io_read_analog(C.int(channel)))
 }
 

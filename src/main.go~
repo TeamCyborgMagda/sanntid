@@ -1,0 +1,17 @@
+package main
+
+import(
+   "./driver"
+   "./network"
+)
+
+
+
+func main(){
+   // channel ordertable
+   // lese av ordre fil.
+   go network(order_list)   //bør inneholde kost function
+   go io(order_list)
+   
+   
+}
