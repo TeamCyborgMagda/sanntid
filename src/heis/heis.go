@@ -3,6 +3,8 @@ package heis
 import(
    "driver"
    "time"  
+   "math"
+   "fmt"
 )
 
 func HeisInit()(int, int, int){
@@ -11,29 +13,37 @@ func HeisInit()(int, int, int){
       driver.SetSpeed(-300)
    }
    driver.SetSpeed(0)
-   current_floor := GetFloor()
+   current_floor := driver.GetFloor()
    destination := -1
    return direction, current_floor, destination
 }
 
-func heis(order_list chan, command_list chan, cost chan){ 
+func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan driver.Data){ 
    direction, current_floor, destination := HeisInit()
-   var temp = make([]int,8)
-   var order_list_copy = make([]int,8)
+ //  cost <- init   
+   
    for{
-      // make cost function
+      fmt.Printf("while loop heis: check \n")
+    //  cost_temp := <- cost
+    //  cost_temp.Array = CostFunction(current_floor, direction, destination)
+    //  cost <- cost_temp
+    //  fmt.Printf("Første kopiering i heis: check \n")
       
+      order_list_copy := <- order_list
+      fmt.Printf("Andre kopiering i heis: check \n")
       
-      order_list -> temp
-      order_list_copy = temp
-      order_list <- temp
+      command_list_copy := <- command_list
+      
+      fmt.Printf("Tredje kopiering i heis: check \n")
       
       //direction is initialized to zero, this function returns the first found destination if the direction
       // is zero, and optimalizes the destination if the direction is positive or negative. 
-      destination = GetDestination(direction, order_list_copy))
+      destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array)
       
       // decides direction required to reach destination from current floor.
-      direction = getDirection(destination, current_floor)
+      direction = GetDirection(destination, current_floor)
+      order_list <- order_list_copy
+      command_list <- command_list_copy
       
       driver.SetSpeed(direction*300)
       for(destination != -1){
@@ -41,15 +51,23 @@ func heis(order_list chan, command_list chan, cost chan){
             continue
          }else{
             current_floor = driver.GetFloor()
+            
+         //   cost_temp = <- cost
+          //  cost_temp.Array = CostFunction(current_floor, direction, destination)
+          //  cost <- cost_temp
          }
          
-         order_list -> temp
-         order_list_copy = temp
-         order_list <- temp
-         if( (direction==-1 && order_list[2*current_floor-2]==1) || (direction==1 && order_list[2*current_floor-1]==1) || command_list[current_floor] == 1){
+         order_list_copy = <- order_list
+         order_list <- order_list_copy
+         command_list_copy <- command_list
+         command_list <- command_list_copy
+         
+         
+         command_list <- command_list_copy
+         if( (direction==-1 && order_list_copy.Array[2*current_floor-2]==1) || (direction==1 && order_list_copy.Array[2*current_floor-1]==1) || command_list_copy.Array[current_floor] == 1){
             driver.SetSpeed(0)
             driver.SetDoorLamp(1)
-            removeOrders(current_floor, direction)
+            //removeOrders(current_floor, direction)
             time.Sleep(3*time.Second)
             driver.SetDoorLamp(0)
             if current_floor == destination{
@@ -79,7 +97,7 @@ func GetDirection(destination int, current_floor int)(int){
    return direction
 }
 
-func GetDestination(direction int, current_floor int, order_list [8]int, command_list [4]int)(int){
+func GetDestination(direction int, current_floor int, order_list [8]int, command_list [8]int)(int){
    var i int
    if(direction == 1){
       i = 3
@@ -121,32 +139,30 @@ func GetDestination(direction int, current_floor int, order_list [8]int, command
 
 func CostFunction(current_floor int,direction int, destination int)([8]int){
    i := 0
-   var cost := make([]int,8)
+   var cost [8]int
    for i<8{
       if (direction == 0){
-         cost[i] = i/2 - current_floor    //ABSOLUTT VERDI
+         cost[i] = int(math.Abs(float64(i/2 - current_floor)))    //ABSOLUTT VERDI
       }else if(direction == 1){
          if(i%2 == 1 && i/2 > current_floor){
             cost[i] = i/2 - current_floor - 1
+         }else if (i%2 == 1 && i/2 <= current_floor || i%2 == 0){
+            cost[i] =int (math.Abs(float64(i/2 - destination)) + math.Abs(float64(destination - current_floor - 1)))
          }else{
-            cost[i] = 6 
+            cost[i] = 6
          }
       }else{
          if(i%2 == 0 && i/2 < current_floor){
-            cost[i] = current_floor - i/2 - 1
+            cost[i] =  current_floor - i/2 - 1
+         }else if (i%2 == 0 && i/2 >= current_floor || i%2 ==  1){
+            cost[i] = int(math.Abs(float64(i/2 - destination)) + math.Abs(float64(current_floor- destination - 1)))
          }else{
             cost[i] = 6
          }
       }
-   }
-   
-   for i<8{
-      if (cost[i] < (current_floor- destination) - (destination - i/2) ){  //ABSOLUTT VERDI I KLAMMENE
-         cost[i] = (current_floor- destination) - (destination - i/2)
-      }
+      i += 1
    }
    return cost
-
 }
 
 

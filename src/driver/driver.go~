@@ -9,6 +9,9 @@ import(
 var last_speed = 1
 const N_FLOORS = 4
 
+type Data struct {                        //Burde deklareres i en fil som alle modulene bruker. (typ driver)
+    Array [8]int
+}
 
 var button_adress = [12]int{FLOOR_UP1, FLOOR_DOWN1, FLOOR_COMMAND1, FLOOR_UP2, FLOOR_DOWN2, FLOOR_COMMAND2, FLOOR_UP3, FLOOR_DOWN3, FLOOR_COMMAND3, FLOOR_UP4, FLOOR_DOWN4, FLOOR_COMMAND4}
 // 0-2 = first floor, 3-5 = second floor, 6-8 = third floor, 9-11 = fourth floor
@@ -97,11 +100,11 @@ func SetButtonLamp(button string, floor int, value int){
     if button == "up" || button == "down" || button == "command"{
         if  floor < N_FLOORS && floor >= 0{
             if(button == "down" && floor == 0){
-                fmt.Printf("Button nonexisting for floor")  
+                fmt.Printf("Button nonexisting for floor (down) \n")  
                 return
             }
             if(button == "up" && floor == N_FLOORS -1){
-                fmt.Printf("Button nonexisting for floor")  
+                fmt.Println("Button nonexisting for floor (up) \ni = ", floor)  
                 return
             }
             if (value == 1){
@@ -162,5 +165,7 @@ func SetStopLamp(value int){
         IoClearBit(LIGHT_STOP)
     }
 }
+
+
 
 
