@@ -1,17 +1,40 @@
 package main
 
 import(
-   "./driver"
-   "./network"
+   "driver"
+   //"network"
+   "iomodule"
+   "fmt"
+   "heis"
+   "time"
 )
 
 
 
 func main(){
-   // channel ordertable
-   // lese av ordre fil.
-   go network(order_list, cost)   //bør inneholde kost function
-   go io(order_list, command_list)
-   go heis(order_list, command_list, cost)
-   sleep(10000*seconds)
+   
+   /*
+   direction := 1
+   floor := 2
+   dest := heis.GetDestination(direction,floor,[8]int{0,0,0,1,0,0,0,0}, [8]int{0,0,0,0,0,0,0,0})
+   direction = heis.GetDirection(dest, floor)
+   fmt.Println("destination: ",dest, "direction: ", direction)
+   */
+   
+   
+   order_queue := make(chan driver.Data)
+   command_list := make(chan driver.Data)
+   order_list := make(chan driver.Data)
+   cost := make(chan driver.Data)
+   driver.Init()
+   fmt.Printf("Iomodule i choose you\n")
+   go iomodule.IoManager(order_queue, command_list, order_list, cost)
+   fmt.Printf("Heis i choose you\n")
+   go heis.Heis(order_list, command_list, cost)
+  
+   for {
+      
+      time.Sleep(time.Second)
+   }
+   
 }
