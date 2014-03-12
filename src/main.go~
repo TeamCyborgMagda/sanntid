@@ -13,26 +13,17 @@ import(
 
 func main(){
    
-   /*
-   direction := 1
-   floor := 2
-   dest := heis.GetDestination(direction,floor,[8]int{0,0,0,1,0,0,0,0}, [8]int{0,0,0,0,0,0,0,0})
-   direction = heis.GetDirection(dest, floor)
-   fmt.Println("destination: ",dest, "direction: ", direction)
-   */
-   
-   
-   order_queue := make(chan driver.Data)
-   command_list := make(chan driver.Data)
-   order_list := make(chan driver.Data)
-   cost := make(chan driver.Data)
-   remove_order := make(chan driver.Data)
-   remove_command :=  make(chan driver.Data)
+   order_queue := make(chan driver.Data, 1)
+   command_list := make(chan driver.Data, 1)
+   order_list := make(chan driver.Data, 1)
+   cost := make(chan driver.Data, 1)
+   remove_order := make(chan driver.Data, 1)
+   remove_command :=  make(chan driver.Data, 1)
    driver.Init()
    fmt.Printf("Iomodule i choose you\n")
-   go iomodule.IoManager(order_queue, command_list, order_list, cost)
+   go iomodule.IoManager(order_queue, command_list, order_list, cost, remove_order, remove_command)
    fmt.Printf("Heis i choose you\n")
-   go heis.Heis(order_list, command_list, cost)
+   go heis.Heis(order_list, command_list, cost, remove_order, remove_command)
   
    for {
       

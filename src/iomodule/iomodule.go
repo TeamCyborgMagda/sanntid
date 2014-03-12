@@ -23,9 +23,7 @@ func IoManager(order_queue chan driver.Data, command_list chan driver.Data, orde
          case data := <- remove_order:
             remove_orders = data.Array
          case data := <- remove_command:
-            remove_commands = data.Array
-         default:
-            time.Sleep(1)           
+            remove_commands = data.Array          
          }
          time.Sleep(1*time.Millisecond)
       }
@@ -33,14 +31,6 @@ func IoManager(order_queue chan driver.Data, command_list chan driver.Data, orde
    
    for {
    
-      
-      //fmt.Printf("while loop io \n")
-      // READ INPUT
-     // order_queue_copy := <- order_queue
-    //  order_queue <- order_queue_copy
-      
-    //  cost_copy := <- c
-      
       
       i := 0
       for i<4{
@@ -58,12 +48,6 @@ func IoManager(order_queue chan driver.Data, command_list chan driver.Data, orde
          
       }
       
-     // temp = <- order_queue
-      //order_queue <- order_queue_copy
-     // temp = <- command_list
-    //  command_list <- command_list_copy
-     // fmt.Println(temp.Array)
-   
       // Panel thing
       
       i= 0 
@@ -103,7 +87,6 @@ func IoManager(order_queue chan driver.Data, command_list chan driver.Data, orde
          case data := <- command_list:
             command_list_copy = data
          default:
-            fmt.Println("io skriver: ", order_list_copy.Array)
             order_list <- order_list_copy
             command_list <- command_list_copy
          

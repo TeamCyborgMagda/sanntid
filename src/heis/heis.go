@@ -21,7 +21,7 @@ func HeisInit()(int, int, int){
 func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan driver.Data, remove_order chan driver.Data, remove_command chan driver.Data){ 
    
    direction, current_floor, destination := HeisInit()
-   var cost_copy driver.Data
+   //var cost_copy driver.Data
    var command_list_copy driver.Data
    var command_list_temp driver.Data
    var order_list_copy driver.Data
@@ -35,19 +35,14 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
       for{
          select{
          case data := <- order_list:
-            fmt.Printf("skal lese knapp to opp om den er lagt inn\n")
             order_list_temp = data
             order_list_copy = order_list_temp
          case data := <- command_list:
             command_list_temp = data
             command_list_copy = command_list_temp
-          //  fmt.Println(data.Array)
-         case data := <- cost:
-            cost_copy = data
-           // fmt.Println(data.Array)
-         default:
-            time.Sleep(1)   
+          //  fmt.Println(data.Array) 
          }
+         time.Sleep(1*time.Millisecond)
       }
    }()
    
@@ -62,11 +57,7 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
       
       driver.SetSpeed(direction*300)
       for(destination != -1){
-         
-            
-         //   cost_temp = <- cost
-          //  cost_temp.Array = CostFunction(current_floor, direction, destination)
-          //  cost <- cost_temp
+         destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array)
          floor := driver.GetFloor() 
          if(floor != -1){
             current_floor = floor
@@ -79,8 +70,9 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
             
             
             
-            remove_orders.Array, remove_commands.Array = RemoveOrders(direction, destination)
-            fmt.Printf("Heis Deadlock yo?\n")
+            remove_orders.Array, remove_commands.Array = RemoveOrders(current_floor, direction, destination)
+            fmt.Println("Heis Deadlock yo? maybe remove orders will help: ", remove_orders.Array)
+            fmt.Println("her er variablene brukt: ", current_floor, direction, destination)
                    
             fmt.Println("heis skriver")
             remove_order <- remove_orders
@@ -94,11 +86,11 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
             if current_floor == destination{
                destination = -1
             }
+            break
          }
          time.Sleep(1*time.Millisecond)
       }
-      // direction
-      // 2) else if there are orders in order list. Complete them until
+      fmt.Println("yiss.yo")
       time.Sleep(1*time.Millisecond) 
    }
 }
@@ -148,8 +140,7 @@ func GetDestination(direction int, current_floor int, order_list [8]int, command
       }
       return -1
       
-         //sjekk, command lista, så order lista(?) sett første som finnes til destination.
-         //hvis ikke, sett destination til eller 0 eller noe. 
+         
    }
 
 }
@@ -160,7 +151,7 @@ func CostFunction(current_floor int,direction int, destination int)([8]int){
    var cost [8]int
    for i<8{
       if (direction == 0){
-         cost[i] = int(math.Abs(float64(i/2 - current_floor)))    //ABSOLUTT VERDI
+         cost[i] = int(math.Abs(float64(i/2 - current_floor)))
       }else if(direction == 1){
          if(i%2 == 1 && i/2 > current_floor){
             cost[i] = i/2 - current_floor - 1
@@ -183,12 +174,12 @@ func CostFunction(current_floor int,direction int, destination int)([8]int){
    return cost
 }
 
-func RemoveOrders(direction int, destination int)([8]int,[8]int){
+func RemoveOrders(current_floor int,direction int, destination int)([8]int,[8]int){
    remove_order := [8]int{0,0,0,0,0,0,0,0}
    remove_command :=[8]int{0,0,0,0,0,0,0,0}
    i := 0
    for (i < 4){
-      if (driver.GetFloor() == i){
+      if (current_floor == i){
          remove_command[i] = 1
          if (destination == i){
          	remove_command[i] = 1
@@ -197,7 +188,7 @@ func RemoveOrders(direction int, destination int)([8]int,[8]int){
          	
          }else if (direction == 1){
             remove_order[i*2+1] = 1
-         } else if (direction == 0){
+         } else if (direction == -1){
             remove_order[i*2] = 1
          } 
       }

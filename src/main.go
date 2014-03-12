@@ -13,15 +13,6 @@ import(
 
 func main(){
    
-   /*
-   direction := 1
-   floor := 2
-   dest := heis.GetDestination(direction,floor,[8]int{0,0,0,1,0,0,0,0}, [8]int{0,0,0,0,0,0,0,0})
-   direction = heis.GetDirection(dest, floor)
-   fmt.Println("destination: ",dest, "direction: ", direction)
-   */
-   
-   
    order_queue := make(chan driver.Data)
    command_list := make(chan driver.Data)
    order_list := make(chan driver.Data)

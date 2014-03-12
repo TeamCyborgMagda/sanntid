@@ -1,5 +1,5 @@
 //package main
-package network
+package main
 
 import (
     "fmt" 
@@ -16,10 +16,10 @@ func Init()(string, string, *net.UDPConn,*net.UDPConn, error) {
 	}
 	ip := strings.Split(AllAddr[1].String(),"/")[0]
 	port := ":33546"
-	l_adress, err := net.ResolveUDPAddr("udp", ":20002")
+	l_adress, err := net.ResolveUDPAddr("udp", ":20008")
 	listen, err := net.ListenUDP("udp",l_adress)
 
-	w_adress, err := net.ResolveUDPAddr("udp", "129.241.187.255"+":20002")
+	w_adress, err := net.ResolveUDPAddr("udp", "129.241.187.255"+":20008")
 	conn, err := net.DialUDP("udp",nil,w_adress)
 	return ip, port, listen, conn,  err
 
@@ -92,7 +92,7 @@ func CheckConnection(state string, master_ip string, broadcast_listener *net.UDP
 }
 */
 
-func NetworkModule(){
+func main(){
 //udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?
 	ip, master_port, broadcast_listener, broadcast_writer, err := Init()
 	fmt.Println("Init gikk bra")
@@ -136,6 +136,7 @@ func NetworkModule(){
 			connections[0],err = ConnectMaster(master_adress + master_port)
 			if err != nil{
 				fmt.Println("Cannot connect to master: ", err);
+				continue
 			}		
 		}			
 //									Slave loop

@@ -1,5 +1,5 @@
 //package main
-package network
+package main
 
 import (
     "fmt" 
@@ -58,7 +58,7 @@ func ConnectMaster(adress string)(*net.TCPConn, error){
 	return conn, err 
 }
 
-
+/*
 func CheckConnection(state string, master_ip string, broadcast_listener *net.UDPConn, ip string)(int){
 	buffer := make([]byte, 128)
 	var read_ip string	
@@ -90,9 +90,9 @@ func CheckConnection(state string, master_ip string, broadcast_listener *net.UDP
 	return 1
  
 }
+*/
 
-
-func NetworkModule(){
+func main(){
 //udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?
 	ip, master_port, broadcast_listener, broadcast_writer, err := Init()
 	fmt.Println("Init gikk bra")
@@ -136,6 +136,7 @@ func NetworkModule(){
 			connections[0],err = ConnectMaster(master_adress + master_port)
 			if err != nil{
 				fmt.Println("Cannot connect to master: ", err);
+				continue
 			}		
 		}			
 //									Slave loop
