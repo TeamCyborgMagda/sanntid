@@ -18,38 +18,47 @@ func HeisInit()(int, int, int){
    return direction, current_floor, destination
 }
 
-func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan driver.Data){ 
+func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan driver.Data, remove_order chan driver.Data, remove_command chan driver.Data){ 
    
    direction, current_floor, destination := HeisInit()
-   //var cost_copy driver.Data
-  // var command_list_copy driver.Data
-  // var order_list_copy driver.Data
-   /*
+   var cost_copy driver.Data
+   var command_list_copy driver.Data
+   var command_list_temp driver.Data
+   var order_list_copy driver.Data
+   var order_list_temp driver.Data
+   var remove_orders driver.Data
+   var remove_commands driver.Data
+   order_list_copy.Array = [8]int{0,0,0,0,0,0,0,0}
+   command_list_copy.Array = [8]int{0,0,0,0,0,0,0,0}
+   
    go func(){
       for{
          select{
          case data := <- order_list:
-            order_list_copy = data
+            fmt.Printf("skal lese knapp to opp om den er lagt inn\n")
+            order_list_temp = data
+            order_list_copy = order_list_temp
          case data := <- command_list:
-            command_list_copy = data
+            command_list_temp = data
+            command_list_copy = command_list_temp
+          //  fmt.Println(data.Array)
          case data := <- cost:
             cost_copy = data
+           // fmt.Println(data.Array)
          default:
-            time.Sleep(100*time.Millisecond)   
+            time.Sleep(1)   
          }
       }
    }()
-   */
+   
    for{
-      order_list_copy, command_list_copy := ReadIo(order_list, command_list)
       //order_list_copy, command_list_copy := ReadIo(order_list, command_list)
       //direction is initialized to zero, this function returns the first found destination if the direction
       // is zero, and optimalizes the destination if the direction is positive or negative. 
       destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array)
-      
+      fmt.Println(destination, " denne skal være 1")
       // decides direction required to reach destination from current floor.
       direction = GetDirection(destination, current_floor)
-     
       
       driver.SetSpeed(direction*300)
       for(destination != -1){
@@ -58,25 +67,26 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
          //   cost_temp = <- cost
           //  cost_temp.Array = CostFunction(current_floor, direction, destination)
           //  cost <- cost_temp
-         
-         
-         if(driver.GetFloor() == -1){
-            continue
-         }else{
-            current_floor = driver.GetFloor()
+         floor := driver.GetFloor() 
+         if(floor != -1){
+            current_floor = floor
          }
          
-         if( (direction==-1 && order_list_copy.Array[2*current_floor-2]==1) || (direction==1 && order_list_copy.Array[2*current_floor-1]==1) || command_list_copy.Array[current_floor] == 1 || (destination == current_floor)){
+         //order_list_copy, command_list_copy = ReadIo(order_list, command_list)
+         if( (direction==-1 && order_list_copy.Array[2*current_floor]==1) || (direction==1 && order_list_copy.Array[2*current_floor+1]==1) || command_list_copy.Array[current_floor] == 1 || (destination == current_floor)){
             driver.SetSpeed(0)
             driver.SetDoorLamp(1)
             
-            order_list_copy, command_list_copy = ReadIo(order_list, command_list)
             
-            order_list_copy.Array, command_list_copy.Array = RemoveOrders(order_list_copy.Array, command_list_copy.Array, direction, destination)
+            
+            remove_orders.Array, remove_commands.Array = RemoveOrders(direction, destination)
             fmt.Printf("Heis Deadlock yo?\n")
-            
-            order_list <- order_list_copy
-            command_list <- command_list_copy
+                   
+            fmt.Println("heis skriver")
+            remove_order <- remove_orders
+            fmt.Println("heis skriver2")
+            remove_command <- remove_commands
+                                                              
             fmt.Printf("Heis yo no\n")
             
             time.Sleep(3*time.Second)
@@ -84,15 +94,12 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
             if current_floor == destination{
                destination = -1
             }
-            break
          }
+         time.Sleep(1*time.Millisecond)
       }
       // direction
-      // 2) else if there are orders in order list. Complete them until 
-      
-   
-   
-   
+      // 2) else if there are orders in order list. Complete them until
+      time.Sleep(1*time.Millisecond) 
    }
 }
 
@@ -176,27 +183,29 @@ func CostFunction(current_floor int,direction int, destination int)([8]int){
    return cost
 }
 
-func RemoveOrders(order_list [8]int, command_list [8]int, direction int, destination int)([8]int,[8]int){
+func RemoveOrders(direction int, destination int)([8]int,[8]int){
+   remove_order := [8]int{0,0,0,0,0,0,0,0}
+   remove_command :=[8]int{0,0,0,0,0,0,0,0}
    i := 0
    for (i < 4){
       if (driver.GetFloor() == i){
-         command_list[i] = 0
+         remove_command[i] = 1
          if (destination == i){
-         	command_list[i] = 0
-         	order_list[i*2] = 0
-         	order_list[i*2+1] = 0
+         	remove_command[i] = 1
+         	remove_order[i*2] = 1
+         	remove_order[i*2+1] = 1
          	
          }else if (direction == 1){
-            order_list[i*2+1] = 0
+            remove_order[i*2+1] = 1
          } else if (direction == 0){
-            order_list[i*2] = 0
+            remove_order[i*2] = 1
          } 
       }
       i +=1
    }
-   return order_list, command_list
+   return remove_order, remove_command
 }
-
+/*
 func ReadIo(order_list chan driver.Data, command_list chan driver.Data)(driver.Data, driver.Data){
    var order_list_copy driver.Data
    order_list_copy.Array = [8]int{0,0,0,0,0,0,0,0}
@@ -216,5 +225,5 @@ func ReadIo(order_list chan driver.Data, command_list chan driver.Data)(driver.D
    return  order_list_copy, command_list_copy
 }
 
-
+*/
 

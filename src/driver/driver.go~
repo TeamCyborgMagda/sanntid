@@ -29,7 +29,7 @@ func Init() int {
         if i != 0 {
             SetButtonLamp("down", i, 0)
         }
-        if (i != N_FLOORS){
+        if (i != N_FLOORS-1){
             SetButtonLamp("up", i, 0)
         }
         SetButtonLamp("command", i, 0);
