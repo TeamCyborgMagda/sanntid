@@ -4,7 +4,7 @@ import(
    "driver"
    "time"  
    "math"
-   "fmt"
+   //"fmt"
 )
 
 func HeisInit()(int, int, int){
@@ -19,7 +19,7 @@ func HeisInit()(int, int, int){
 }
 
 func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan driver.Data, remove_order chan driver.Data, remove_command chan driver.Data){ 
-   
+   //Initialize variables. 
    direction, current_floor, destination := HeisInit()
    //var cost_copy driver.Data
    var command_list_copy driver.Data
@@ -31,6 +31,7 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
    order_list_copy.Array = [8]int{0,0,0,0,0,0,0,0}
    command_list_copy.Array = [8]int{0,0,0,0,0,0,0,0}
    
+   //Starts a gorutine for continously reading relevant channels. 
    go func(){
       for{
          select{
@@ -40,60 +41,65 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
          case data := <- command_list:
             command_list_temp = data
             command_list_copy = command_list_temp
-          //  fmt.Println(data.Array) 
          }
          time.Sleep(1*time.Millisecond)
       }
    }()
    
    for{
-      //order_list_copy, command_list_copy := ReadIo(order_list, command_list)
       //direction is initialized to zero, this function returns the first found destination if the direction
       // is zero, and optimalizes the destination if the direction is positive or negative. 
       destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array)
-      fmt.Println(destination, " denne skal være 1")
+ 
       // decides direction required to reach destination from current floor.
       direction = GetDirection(destination, current_floor)
-      
       driver.SetSpeed(direction*300)
+      
+    	//Loop where the elevator is in running mode.  
       for(destination != -1){
+      	
+      	// Updates current floor and optimizes the destination
          destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array)
          floor := driver.GetFloor() 
          if(floor != -1){
             current_floor = floor
          }
          
-         //order_list_copy, command_list_copy = ReadIo(order_list, command_list)
-         if( (direction==-1 && order_list_copy.Array[2*current_floor]==1) || (direction==1 && order_list_copy.Array[2*current_floor+1]==1) || command_list_copy.Array[current_floor] == 1 || (destination == current_floor)){
+         //If sentence with the requirements for a stop. 
+         if( current_floor == driver.GetFloor() && ((direction==-1 && order_list_copy.Array[2*current_floor]==1) || (direction==1 && order_list_copy.Array[2*current_floor+1]==1) || command_list_copy.Array[current_floor] == 1 || (destination == current_floor))){
+            
+            //stopping the elevator
             driver.SetSpeed(0)
-            driver.SetDoorLamp(1)
-            
-            
-            
+          	
+          	//Sending what orders have been accomplished. 
             remove_orders.Array, remove_commands.Array = RemoveOrders(current_floor, direction, destination)
-            fmt.Println("Heis Deadlock yo? maybe remove orders will help: ", remove_orders.Array)
-            fmt.Println("her er variablene brukt: ", current_floor, direction, destination)
-                   
-            fmt.Println("heis skriver")
             remove_order <- remove_orders
-            fmt.Println("heis skriver2")
             remove_command <- remove_commands
-                                                              
-            fmt.Printf("Heis yo no\n")
             
+            //opening/closing doors                                                 
+            driver.SetDoorLamp(1)
             time.Sleep(3*time.Second)
             driver.SetDoorLamp(0)
+            
+            //resets the destination if it is the current floor.
             if current_floor == destination{
                destination = -1
             }
+            //was apparantly neccesary with a break here. 
             break
          }
          time.Sleep(1*time.Millisecond)
       }
-      fmt.Println("yiss.yo")
       time.Sleep(1*time.Millisecond) 
    }
 }
+
+
+
+
+
+
+
 
 func GetDirection(destination int, current_floor int)(int){
    direction := 0
@@ -107,6 +113,7 @@ func GetDirection(destination int, current_floor int)(int){
    return direction
 }
 
+
 func GetDestination(direction int, current_floor int, order_list [8]int, command_list [8]int)(int){
    var i int
    if(direction == 1){
@@ -118,7 +125,6 @@ func GetDestination(direction int, current_floor int, order_list [8]int, command
          i -= 1 
       }
       return -1
-         
    }else if (direction == -1){
       i = 0
       for(i <= current_floor){
@@ -128,8 +134,6 @@ func GetDestination(direction int, current_floor int, order_list [8]int, command
          i += 1
       }
       return -1
-         
-         //hvis ikke behold det som destination
    }else{
       i = 0
       for(i < 4){
@@ -138,12 +142,11 @@ func GetDestination(direction int, current_floor int, order_list [8]int, command
          }
          i += 1
       }
-      return -1
-      
-         
+      return -1         
    }
 
 }
+
 
 
 func CostFunction(current_floor int,direction int, destination int)([8]int){
