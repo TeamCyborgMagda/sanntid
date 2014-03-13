@@ -28,7 +28,7 @@ func Init()(string, string, *net.UDPConn,*net.UDPConn, error) {
 }
 
 //			initializes/reset state, resets/initialize number of slaves, and initialize master-ip, initialize connections array		
-func StateInit(conn *net.UDPConn)(string, string){
+func StateInit(conn *net.UDPConn)(string, string, int){
 	buffer := make([]byte,128)
 	for{ 
 		conn.SetDeadline(time.Now().Add(6*time.Second))
@@ -36,7 +36,7 @@ func StateInit(conn *net.UDPConn)(string, string){
 		if err != nil{
 //	step) hvis man ikke hører en master, returner "master" + "nil"
 			fmt.Println("finner ingen master", err )			
-			return "master", "", 0
+			return "master", "", 1
 		}
 //	step) hvis man hørte en master, returner "slave" + ip adresse  
 		read_ip:=string(buffer)
@@ -94,10 +94,15 @@ func CheckConnection(state string, master_ip string, broadcast_listener *net.UDP
 */
 
 func main(){
+	var order_array [10]driver.Data
+	
+
 //udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?
 	ip, master_port, broadcast_listener, broadcast_writer, err := Init()
 	fmt.Println("Init gikk bra")
 	if err != nil{return}
+	
+	/*
 	go func(){
 		for{
 			select{
@@ -111,15 +116,17 @@ func main(){
 			time.Sleep(1*time.Millisecond)
 		}
 	}()
-	
+	*/
 		
 	for{
 		
 		state, master_adress, elevator_nr := StateInit(broadcast_listener)	//bestemme funksjon
 		fmt.Println("State init gikk bra")
+		
 		connections := make([]net.Conn,10)
 		nr_of_slaves := 0
- 		slave_listener, err := SlaveListener(master_port)		//			master loop, n = number of slaves 					
+ 		slave_listener, err := SlaveListener(master_port)		//			master loop, n = number of slaves 
+ 							
  		for (state=="master"){
 //			if CheckConnection(state, master_adress,broadcast_listener,ip) != 1{
 //				break
@@ -127,6 +134,7 @@ func main(){
 			fmt.Println("Heisen er en master")
 			broadcast_writer.Write([]byte(ip+"\x00"))
 			fmt.Println(ip)
+			elevator_number <- elevator_nr   // Må opprette channel
 			
 			slave_listener.SetDeadline(time.Now().Add(2*time.Second))
 			connections[nr_of_slaves],err = slave_listener.Accept()
@@ -134,7 +142,7 @@ func main(){
 				fmt.Println("Finner ingen slaver: ", err)
 			}else{
 				nr_of_slaves = nr_of_slaves + 1
-				connection[nr_of_slaves].Write([]byte(string(nr_of_slaves) + "\x00")
+				connections[nr_of_slaves].Write([]byte(string(nr_of_slaves+1) + "\x00"))  //need int to string conversion
 				fmt.Println("inkrementerer variabel")
    		}
    		
@@ -144,19 +152,45 @@ func main(){
 				connections[i].Write([]byte("send\x00"))
 				connections[i].Read(buffer)
 				cost_array[i+1] = buffer[0]
-				order_array[i+1] = buffer[1]
+				order_array[i+1] = buffer[1]				//Need conversions from byte to driver.Data type. 
 				remove_array[i+1] = buffer[2]
 				i += 1
-				
 			}
+			j := 0
 			for i <= nr_of_slaves{
-				order_list = //bitwise or of order_array[i]
-				order_list = //0 if (order_list && remove_order[i][j]
-				order_list = // 0 - (nr_of_slaves +1) based on the elevator with lowest cost. 
+				j = 0
+				for j<8{
+					if(order_array[i].Array[j] == 1){
+						order_list[j] = 1
+					}
+					j += 1
+				}
+				j = 0
+				for j <8{
+					if(remove_array[i].Array[j] == 1){
+						order_list[j] = 0
+					}
+					j += 1
+				}
+				i +=1
 			}
-			broadcast_writer(order_list)
-			
-			
+			j = 0
+			for j<8{
+				i = 0
+				lowest_costs[j] = 0
+				for i<nr_of_slaves{
+					if(cost_array[i+1].Array[j] < cost_array[lowest_cost[j]].Array[j]){
+						lowest_cost[j] = i
+					}
+				
+				}
+			}
+			j = 0
+			for j<8{ 	
+				order_list[j] = order_list[j]*(lowest_cost[j] + 1) // 0 - (nr_of_slaves +1) based on the elevator with lowest cost. 
+			}
+			broadcast_writer.Write(string(order_list) + "\x00")
+			order_list <- order_list_yo							//needs to be made channel name/or changed variable name. 
 			time.Sleep(1*time.Millisecond)	
 		}
 // 	"Videre: prossesering av data og sending av informasjon til slaver
@@ -170,21 +204,30 @@ func main(){
 				fmt.Println("Cannot connect to master: ", err);
 				continue
 			}
+			buffer := make([]byte,128)
 			connections[0].Read(buffer)
-			elevator_nr = buffer		
+			elevator_nr = buffer		//need string to int conversions
+			elevator_number <- elevator_nr  // må opprette kanal 		
 		}			
 //									Slave loop
 		for state == "slave"{
 //			if !CheckConnection(state){
 //				break						
 //			}
-//			ReadElevatorStatus()
+
 			fmt.Println("Heisen er en slave")
-			buffer := make([]byte, 128)
-			connections[nr_of_slaves].Write([]byte("BAI there" + "\x00"))
-			connections[nr_of_slaves].Read(buffer)
-			fmt.Println(string(buffer))
-			time.Sleep(100*time.Millisecond)	
+			buffer = make([]byte, 128)
+			
+			connections[0].Read(buffer)
+			if string(buffer) == "send"{
+				connections[0].Write([]byte(string(order_queue.Array)+ string(cost.Array) + string(remove_orders.Array) + "\x00" )
+				broadcast_listener.Read(buffer)
+				order_list_yo = buffer //converted to driver.Data yay! ++ standariser navn yo
+				order_list <- order_list_yo // navn og channel ikke opprettet. 
+			}
+			
+			
+			time.Sleep(100*time.Millisecond)
 //			HandleMastersOrders()
 		}
 	}
@@ -196,15 +239,25 @@ func main(){
 /*
 master løække:
  for N_slaves{
+	gi klarsignal
 	les melding
- 	if setning(lese prefiks)
- 	hvis(prefiks lik cost) - opdatere kost for slaven
- 	hvis(prefiks lik remove) - fjerne ordre fra listen
  	hvis(error timeout) - inkrementer feil
  		hvis feil = maks tillat. Fjern fra lista. 
  	oppdater ordre
- for N_slaves{
- 	sende oppdatterrtt ordre liste
+ 	broadkast ordre
+ 
+ 
+
+ 
+ vente på send
+ Hvis man venter for lenge i strekk, avbryt og se etter ny master. 
+ sende oppdatterrtte lister
+ lese broadcast for ny ordre_liste
+ 
+ 	
+ 	
+
+
 
 */ 
  
