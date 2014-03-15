@@ -1,79 +1,91 @@
 package main
 
 import (
-    "iomodule" 
+    //"iomodule" 
     "fmt"
     "heis"
-    "driver"
-    "time"
-    "runtime"
+    //"driver"
+    //"encoding/json"
+    
+    //"time"
 )
 
 
-/*
-func ChannelInit( c1 chan driver.Data, c2 chan driver.Data, c3 chan driver.Data, c4 chan driver.Data ){
-    c1 <- driver.Data{[8]int{0,0,0,0,0,0,0,0}}
-    c2 <- *new(driver.Data)
-    c3 <- *new(driver.Data)
-    c3 <- *new(driver.Data)
-}
-*/
 
 func main(){
-    runtime.GOMAXPROCS(runtime.NumCPU()) 
-    driver.Init()  
-    cost := make(chan driver.Data)
-    order_list := make(chan driver.Data)
-    order_queue := make(chan driver.Data)
-    command_list := make(chan driver.Data)
-    
-    for{
-    	go heis.Heis(order_list, command_list, cost)
-    	go iomodule.IoManager(order_queue, command_list, order_list, cost)
-    }
-    
-    var init driver.Data
-    init.Array = [8]int{0,0,0,0,0,0,0,0}
-    order_list <- init
-    command_list <- init
-    time.Sleep(1000*time.Millisecond)
-    
-    
- //   ChannelInit(order_list, order_queue, command_list, cost)
-//    command_list <- *init
-//    order_queue <-  *init
-//    command_list <- *init
-//    cost <- *init
-    
-   // go iomodule.PanelLights(order_list, command_list)
-    
-    /*i := 0
-    for i < 15{
-      time.Sleep(1000*time.Millisecond)
-      fmt.Println("og: ", i)  
-      i +=1
-    }*/
-    
-    fmt.Printf("\nwut slutten \n")
-    //fmt.Println(command_list.Array)
-  
+
+	current_floor := 1
+	direction := 1
+	destination := 2
+	
+	fmt.Println(heis.CostFunction(current_floor,direction,destination))
+
 /*
-    driver.Init()
-    fmt.Printf("du står i: ", driver.GetFloor(), " etasje")
-    driver.SetFloorIndicator(driver.GetFloor())
-    driver.SetSpeed(20)
-    time.Sleep(1*time.Second)
-    driver.SetSpeed(0)
-    driver.SetButtonLamp("down", 1, 1)
-    driver.SetButtonLamp("down", 0, 1)
-    driver.SetDoorLamp(1)
+	nr_of_slaves := 1
+	order_list_array := [8]int{0,0,0,0,0,0,0,0}
+	var (
+		remove_order_array [2]driver.Data
+		order_queue_array [2]driver.Data
+		cost_array [2]driver.Data
+		remove1 driver.Data
+		remove2 driver.Data
+		cost1 driver.Data
+		cost2 driver.Data
+		queue1 driver.Data
+		queue2 driver.Data
+	)
+	remove1.Array = [8]int{0,0,0,0,0,0,0,0}
+	remove2.Array = [8]int{0,0,0,0,0,0,0,0}
+	cost1.Array = [8]int{4,4,3,1,2,0,1,1}
+	cost2.Array = [8]int{0,0,1,1,2,2,3,3}
+	queue1.Array = [8]int{0,0,0,0,0,0,0,0}
+	queue2.Array = [8]int{0,0,1,1,0,0,0,0}
+	order_queue_array[0] = queue1
+	order_queue_array[1] = queue2
+	remove_order_array[0] = remove1
+	remove_order_array[1] = remove2
+	cost_array[0] = cost1
+	cost_array[1] = cost2
+	
+	
+	i := 0
+	j := 0
+	for i <= nr_of_slaves{
+		j = 0
+		for j<8{
+			if(order_queue_array[i].Array[j] == 1){
+				order_list_array[j] = 1
+			}
+			j += 1
+		}
+		j = 0
+		for j <8{
+			if(remove_order_array[i].Array[j] == 1){
+				order_list_array[j] = 0
+			}
+			j += 1
+		}
+		i += 1
+	}
+	j = 0
+	var lowest_cost [8]int
+	for j<8{
+		i = 0
+		lowest_cost[j] = 1
+		for i<nr_of_slaves{
+			if(cost_array[i].Array[j] < cost_array[lowest_cost[j]].Array[j]){
+				lowest_cost[j] = i
+			}
+			i += 1
+		}
+		j += 1
+	}
+	j = 0
+	for j<8{ 	
+		order_list_array[j] = order_list_array[j]*(lowest_cost[j] + 1) // 0 - (nr_of_slaves +1) based on the elevator with lowest cost. 
+		j += 1
+	}
+	fmt.Println(order_list)
 */
 }
 
-// GetFloor funker
-// SetSpeed funker
-// GetButtonSignal funker
-// Init funker
-// SetButtonLamp funker
-// GetFloor funker
-// SetFloorIndicator funker

@@ -13,12 +13,12 @@ import(
 
 func main(){
    
-   order_queue := make(chan driver.Data, 1)
-   command_list := make(chan driver.Data, 1)
-   order_list := make(chan driver.Data, 1)
-   cost := make(chan driver.Data, 1)
-   remove_order := make(chan driver.Data, 1)
-   remove_command :=  make(chan driver.Data, 1)
+   order_queue := make(chan driver.Data)
+   command_list := make(chan driver.Data)
+   order_list := make(chan driver.Data)
+   cost := make(chan driver.Data)
+   remove_order := make(chan driver.Data)
+   remove_command :=  make(chan driver.Data)
    driver.Init()
    fmt.Printf("Iomodule i choose you\n")
    go iomodule.IoManager(order_queue, command_list, order_list, cost, remove_order, remove_command)

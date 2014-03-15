@@ -76,7 +76,7 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
             remove_order <- remove_orders
             remove_command <- remove_commands
             
-            //opening/closing doors                                                 
+            //opening/closing doors 
             driver.SetDoorLamp(1)
             time.Sleep(3*time.Second)
             driver.SetDoorLamp(0)
@@ -148,7 +148,6 @@ func GetDestination(direction int, current_floor int, order_list [8]int, command
 }
 
 
-
 func CostFunction(current_floor int,direction int, destination int)([8]int){
    i := 0
    var cost [8]int
@@ -159,7 +158,10 @@ func CostFunction(current_floor int,direction int, destination int)([8]int){
          if(i%2 == 1 && i/2 > current_floor){
             cost[i] = i/2 - current_floor - 1
          }else if (i%2 == 1 && i/2 <= current_floor || i%2 == 0){
-            cost[i] =int (math.Abs(float64(i/2 - destination)) + math.Abs(float64(destination - current_floor - 1)))
+            cost[i] = int (math.Abs(float64(i/2 - destination)) + math.Abs(float64(destination - current_floor - 1)))
+         	if (destination != 3){
+         		cost[i] += 1
+         	}
          }else{
             cost[i] = 6
          }
@@ -167,15 +169,20 @@ func CostFunction(current_floor int,direction int, destination int)([8]int){
          if(i%2 == 0 && i/2 < current_floor){
             cost[i] =  current_floor - i/2 - 1
          }else if (i%2 == 0 && i/2 >= current_floor || i%2 ==  1){
-            cost[i] = int(math.Abs(float64(i/2 - destination)) + math.Abs(float64(current_floor- destination - 1)))
+            cost[i] = int(math.Abs(float64(i/2 - destination)) + math.Abs(float64(current_floor - destination - 1)))
+         	if (destination != 0){
+         		cost[i] += 1
+         	}
          }else{
             cost[i] = 6
          }
       }
+      
       i += 1
    }
    return cost
 }
+
 
 func RemoveOrders(current_floor int,direction int, destination int)([8]int,[8]int){
    remove_order := [8]int{0,0,0,0,0,0,0,0}
