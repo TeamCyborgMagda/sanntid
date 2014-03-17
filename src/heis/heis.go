@@ -18,7 +18,7 @@ func HeisInit()(int, int, int){
    return direction, current_floor, destination
 }
 
-func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan driver.Data, remove_order chan driver.Data, remove_command chan driver.Data){ 
+func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan driver.Data, remove_order chan driver.Data, remove_command chan driver.Data, elevator_number chan int){ 
    //Initialize variables. 
    direction, current_floor, destination := HeisInit()
    //var cost_copy driver.Data
@@ -28,9 +28,12 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
    var order_list_temp driver.Data
    var remove_orders driver.Data
    var remove_commands driver.Data
+   var cost_copy driver.Data
+   var elevator_nr int
    order_list_copy.Array = [8]int{0,0,0,0,0,0,0,0}
    command_list_copy.Array = [8]int{0,0,0,0,0,0,0,0}
    
+   elevator_nr = -1
    //Starts a gorutine for continously reading relevant channels. 
    go func(){
       for{
@@ -41,6 +44,8 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
          case data := <- command_list:
             command_list_temp = data
             command_list_copy = command_list_temp
+         case data := <- elevator_number:
+         	elevator_nr = data
          }
          time.Sleep(1*time.Millisecond)
       }
@@ -49,25 +54,29 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
    for{
       //direction is initialized to zero, this function returns the first found destination if the direction
       // is zero, and optimalizes the destination if the direction is positive or negative. 
-      destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array)
- 
+      destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array, elevator_nr)
+ 	  
       // decides direction required to reach destination from current floor.
       direction = GetDirection(destination, current_floor)
       driver.SetSpeed(direction*300)
+      
+      
+      cost_copy.Array = CostFunction(current_floor, direction, destination)
+      cost <- cost_copy
       
     	//Loop where the elevator is in running mode.  
       for(destination != -1){
       	
       	// Updates current floor and optimizes the destination
-         destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array)
+         destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array, elevator_nr)
          floor := driver.GetFloor() 
          if(floor != -1){
             current_floor = floor
          }
          
          //If sentence with the requirements for a stop. 
-         if( current_floor == driver.GetFloor() && ((direction==-1 && order_list_copy.Array[2*current_floor]==1) || (direction==1 && order_list_copy.Array[2*current_floor+1]==1) || command_list_copy.Array[current_floor] == 1 || (destination == current_floor))){
-            
+         if( (current_floor == driver.GetFloor()) && ((direction==-1 && order_list_copy.Array[2*current_floor]==elevator_nr) || (direction==1 && order_list_copy.Array[2*current_floor+1]==elevator_nr) || command_list_copy.Array[current_floor] == 1 || (destination == current_floor))){
+        
             //stopping the elevator
             driver.SetSpeed(0)
           	
@@ -114,21 +123,28 @@ func GetDirection(destination int, current_floor int)(int){
 }
 
 
-func GetDestination(direction int, current_floor int, order_list [8]int, command_list [8]int)(int){
+func GetDestination(direction int, current_floor int, order_list [8]int, command_list [8]int, elevator_nr int)(int){
    var i int
+   candidate := -1
    if(direction == 1){
       i = 3
       for(i >= current_floor){
-         if (order_list[i*2+1] == 1 || command_list[i] == 1){
-            return i
+         if (order_list[i*2+1] == elevator_nr || command_list[i] == 1){
+            if i > candidate{
+            	candidate =  i
+            }
+         }else if(order_list[i*2] == elevator_nr){
+         	if i > candidate{
+         		candidate = i
+         	}
          }
-         i -= 1 
+         i -= 1
       }
-      return -1
+      return candidate
    }else if (direction == -1){
       i = 0
       for(i <= current_floor){
-         if (order_list[i*2] == 1 || command_list[i] == 1){
+         if (order_list[i*2] == elevator_nr || command_list[i] == 1){
             return i
          }
          i += 1
@@ -137,7 +153,7 @@ func GetDestination(direction int, current_floor int, order_list [8]int, command
    }else{
       i = 0
       for(i < 4){
-         if (order_list[i*2] == 1 || order_list[i*2+1] == 1 || command_list[i] == 1){
+         if (order_list[i*2] == elevator_nr || order_list[i*2+1] == elevator_nr || command_list[i] == 1){
             return i
          }
          i += 1
@@ -206,25 +222,4 @@ func RemoveOrders(current_floor int,direction int, destination int)([8]int,[8]in
    }
    return remove_order, remove_command
 }
-/*
-func ReadIo(order_list chan driver.Data, command_list chan driver.Data)(driver.Data, driver.Data){
-   var order_list_copy driver.Data
-   order_list_copy.Array = [8]int{0,0,0,0,0,0,0,0}
-   var command_list_copy driver.Data
-   command_list_copy.Array = [8]int{0,0,0,0,0,0,0,0}
-   i:= 0
-   for i < 4{
-      i += 1
-      select {       
-      case data := <- order_list:
-         order_list_copy = data   
-      case data := <- command_list:
-         command_list_copy = data
-      default:
-      }
-   }
-   return  order_list_copy, command_list_copy
-}
-
-*/
 

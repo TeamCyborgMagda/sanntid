@@ -1,4 +1,4 @@
-package main
+package network
 
 import (
     "fmt"
@@ -17,21 +17,20 @@ type pablo struct{
 }
 
 
-func main(){
+func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost chan driver.Data, elevator_number chan int, order_list chan driver.Data, order_list_lights chan driver.Data){
 	// temporary variables
+	/*
 	var(
-		order_list chan driver.Data
-		order_queue chan driver.Data
-		remove_order chan driver.Data
-		cost chan driver.Data
+		//order_list chan driver.Data
 		order_queue_copy driver.Data
 		remove_order_copy driver.Data
 		cost_copy driver.Data
-		elevator_number chan int //counts slaves
 	)
 	
-	
-
+	order_queue_copy = driver.DataInit()
+	remove_order_copy = driver.DataInit()
+	cost_copy = driver.DataInit()
+*/
 	var (
 		order_queue_array [10]driver.Data //masters array av alle order_queue fått av slavene
 		cost_array [10]driver.Data //masters array av alle cost fått av slavene
@@ -48,79 +47,96 @@ func main(){
 	
 	connection_timeouts := [10]int{0,0,0,0,0,0,0,0,0,0}
 	
+ 
 	go func(){
 		for{
 			select{
 			case data := <- remove_order:
-				remove_order_copy = data
+				remove_order_array[0] = data
 			case data := <- order_queue:
-				order_queue_copy = data
+				i := 0
+				for i < 8{
+					if data.Array[i] == 1{
+						order_queue_array[0].Array[i] = 1
+					}
+					i += 1
+				}
 			case data := <- cost:
-				cost_copy = data
-			case data := <- elevator_number:
-				connection_timeouts[4] = data	
+				cost_array[0] = data
+		
 			}
 			time.Sleep(1*time.Millisecond)
-			
 		}
 	}()
 	
 	
 		
 	for{
-		
 		state, master_adress, elevator_nr := StateInit(broadcast_listener)	//bestemme funksjon
-		fmt.Println("State init gikk bra")
 		
 		connections := make([]net.Conn,10)
 		nr_of_slaves := 0
- 		slave_listener, err := SlaveListener(master_port)		//			master loop, n = number of slaves 
+ 				//			master loop, n = number of slaves 
  							
  		for (state=="master"){
-//			if CheckConnection(state, master_adress,broadcast_listener,ip) != 1{
-//				break
-//			}
-			fmt.Println("Heisen er en master")
 			broadcast_writer.Write([]byte(ip+"\x00")) // her sender master ipen sin over broadcast
 			fmt.Println(ip)
-			//elevator_number <- elevator_nr   // Må opprette channel
+			elevator_number <- elevator_nr   // Må opprette channel
 			fmt.Println("heisen har nr: ", elevator_nr, "og har: ", nr_of_slaves, " slaver")
 			
-			slave_listener.SetDeadline(time.Now().Add(2*time.Second))
+			slave_listener, err := SlaveListener(master_port)
+			slave_listener.SetDeadline(time.Now().Add(1*time.Second).Add(500*time.Millisecond))
 			connections[nr_of_slaves],err = slave_listener.Accept()
 			if err != nil{
 				fmt.Println("Finner ingen slaver: ", err)
 			}else{
+				nr := strconv.Itoa(nr_of_slaves + 2)
+				connections[nr_of_slaves].Write([]byte(nr+"\x00"))  //need int to string conversion
 				nr_of_slaves = nr_of_slaves + 1
-				connections[nr_of_slaves].Write([]byte(string(nr_of_slaves+1) + "\x00"))  //need int to string conversion
-				fmt.Println("inkrementerer variabel")
-   		}
+   			}
    			
 			i := 0
 			buffer := make([]byte, 128)
+			var n int
 			for i < nr_of_slaves {
 				connections[i].SetDeadline(time.Now().Add(100*time.Millisecond))
 				_, err := connections[i].Write([]byte("send\x00"))
 				if err != nil{
 					connection_timeouts[i] += 1
 					if (connection_timeouts[i] > 3){
-						// sortere ordre liste
+					fmt.Println("connection timeout for slave: ", i)
+						j := i
+						k := nr_of_slaves
+						for j < k{
+							connections[j] = connections[j+1]
+							if(j < nr_of_slaves -1){
+								connections[j].SetDeadline(time.Now().Add(1*time.Second))
+								_, err1 := connections[j].Write([]byte("decr\x00"))
+								if(err1 != nil){
+									fmt.Println("error updating connection list")
+									continue 
+								}
+							}
+							
+							j += 1 
+						}
 						fmt.Println("Slave number: ", i, "is inactive, teminating connection") 
 						nr_of_slaves-= 1
 					}
 					continue
 				}else{
 					connections[i].SetDeadline(time.Now().Add(100*time.Millisecond))
-					connections[i].Read(buffer)
+					n, err = connections[i].Read(buffer)
+					fmt.Println("slave has sendt package")
 				}
-				
-				err = json.Unmarshal(buffer, &trans)
+				var information pablo
+				err = json.Unmarshal(buffer[0:n], &information)
 				if (err != nil){
 					fmt.Println("klarte ikke pakke opp cost, order queue og remover orders: ", err)
 				}else{
-					cost_array[i+1].Array = trans.Cost
-					order_queue_array[i+1].Array = trans.OrderQueue
-					remove_order_array[i+1].Array = trans.RemoveOrder
+					cost_array[i+1].Array = information.Cost
+					order_queue_array[i+1].Array = information.OrderQueue
+					remove_order_array[i+1].Array = information.RemoveOrder
 				}
 				
 				i += 1
@@ -133,6 +149,7 @@ func main(){
 				for j<8{
 					if(order_queue_array[i].Array[j] == 1){
 						order_list_array[j] = 1
+						order_queue_array[i].Array[j] = 0
 					}
 					j += 1
 				}
@@ -140,6 +157,7 @@ func main(){
 				for j <8{
 					if(remove_order_array[i].Array[j] == 1){
 						order_list_array[j] = 0
+						remove_order_array[i].Array[j] = 0
 					}
 					j += 1
 				}
@@ -152,17 +170,19 @@ func main(){
 				lowest_cost[j] = 1
 				for i<nr_of_slaves{
 					if(cost_array[i].Array[j] < cost_array[lowest_cost[j]].Array[j]){
-						lowest_cost[j] = i
+						lowest_cost[j] = i+1
 					}
 					i += 1
 				}
 				j += 1
 			}
+			fmt.Println(lowest_cost)
 			j = 0
 			for j<8{ 	
-				order_list_array[j] = order_list_array[j]*(lowest_cost[j] + 1) // 0 - (nr_of_slaves +1) based on the elevator with lowest cost. 
+				order_list_array[j] = order_list_array[j]*(lowest_cost[j]) // 0 - (nr_of_slaves +1) based on the elevator with lowest cost. 
 				j += 1
 			}
+			fmt.Println(order_list_array)
 			order_list_yo.Array = order_list_array
 			buffer, err = json.Marshal(order_list_yo)
 			if (err!=nil){
@@ -170,9 +190,12 @@ func main(){
 			}else{
 				broadcast_orders.Write(buffer) // broadcast sender order list??
 			}
-			fmt.Println("Hopper over for siden nr_of_slaves = 0")
-			//order_list <- order_list_yo
-			time.Sleep(1*time.Millisecond)	
+			
+			
+			order_list <- order_list_yo
+			order_list_lights <- order_list_yo
+			
+			time.Sleep(10*time.Millisecond)	
 		}
 // 		"Videre: prossesering av data og sending av informasjon til slaver - CHECK
 
@@ -187,43 +210,52 @@ func main(){
 			}
 			buffer := make([]byte,128)
 			connections[0].Read(buffer)
-			
-			elevator_nr_str := string(buffer)		//
+			read_msg := string(buffer)
+			elevator_nr_str := strings.Split(read_msg, "\x00")[0]		//
 			elevator_nr,_ = strconv.Atoi(elevator_nr_str)
-			//elevator_number <- elevator_nr  //	
+			fmt.Println(elevator_nr, " er det heisen får tilsent :O ")
+			elevator_number <- elevator_nr  //	
 		}			
 //		Slave loop
 		for state == "slave"{
 			
 			
-			fmt.Println("Heisen er en slave")
+			fmt.Println("Heisen er en slave", elevator_nr)
 			buffer := make([]byte, 128)
 			
-			connections[0].SetDeadline(time.Now().Add(3*time.Second))
+			connections[0].SetDeadline(time.Now().Add(2*time.Second))
 			_, err := connections[0].Read(buffer)
-			if string(buffer) == "send"{
-				
+			fmt.Println(string(buffer))
+			read_msg:=string(buffer)
+			if strings.Split(read_msg, "\x00")[0]	 == "send"{
+				fmt.Println("recieved send command")
 
-				trans.Cost = cost_copy.Array
-				trans.OrderQueue = order_queue_copy.Array
-				trans.RemoveOrder = remove_order_copy.Array
-				
+				trans.Cost = cost_array[0].Array
+				trans.OrderQueue = order_queue_array[0].Array
+				trans.RemoveOrder = remove_order_array[0].Array
+				buffer = make([]byte, 128)
 				buffer,err = json.Marshal(trans)
 				if err != nil{
 					fmt.Println("klarte ikke pakke ned cost, order queue og remove orders: ", err)
 				}else{
 					connections[0].Write(buffer)
 				}				
-				recieve_orders.Read(buffer) // her skal man lese order list fra broadcast. Hvor/når sendes ip?
-				err = json.Unmarshal(buffer, &order_list_yo) // er order_list_yo opprettet før detta?
+				n, err := recieve_orders.Read(buffer)
+				var new_orders driver.Data // her skal man lese order list fra broadcast. Hvor/når sendes ip?
+				err = json.Unmarshal(buffer[0:n], &new_orders) // er order_list_yo opprettet før detta?
 				if (err != nil){
 					fmt.Println("klarte ikke pakke opp order list: ", err)
 				}else{
-					//order_list <- order_list_yo
+					
+					order_list_lights <- new_orders 
+					order_list <- new_orders
+					
+					
 				}
 				
 				//order_list_yo = buffer //converted to driver.Data yay! ++ standariser navn yo
-				//order_list <- order_list_yo // navn og channel ikke opprettet. 
+			}else if strings.Split(read_msg, "\x00")[0]	 == "decr"{
+				elevator_nr -= 1
 			}else if err != nil{
 				connection_timeouts[0] += 1
 				if connection_timeouts[0] > 1{
@@ -234,9 +266,10 @@ func main(){
 			}
 			
 			
-			time.Sleep(1*time.Millisecond)
+			time.Sleep(10*time.Millisecond)
 //			HandleMastersOrders()
 		}
+		time.Sleep(1000*time.Millisecond)	
 	}
 }
 
@@ -296,19 +329,18 @@ func Init()(string, string, *net.UDPConn,*net.UDPConn,*net.UDPConn,*net.UDPConn,
 //			initializes/reset state, resets/initialize number of slaves, and initialize master-ip, initialize connections array		
 func StateInit(conn *net.UDPConn)(string, string, int){
 	buffer := make([]byte,128)
-	for{ 
-		conn.SetDeadline(time.Now().Add(6*time.Second))
-		_,err := conn.Read(buffer)
-		if err != nil{
+	conn.SetDeadline(time.Now().Add(6*time.Second))
+	_,err := conn.Read(buffer)
+	if err != nil{
 //	step) hvis man ikke hører en master, returner "master" + "nil"
-			fmt.Println("finner ingen master", err )			
-			return "master", "", 1
-		}
-//	step) hvis man hørte en master, returner "slave" + ip adresse  
-		read_ip:=string(buffer)
-      master_ip:= strings.Split(read_ip, "\x00")[0]
-		return "slave", master_ip, -1
+		fmt.Println("finner ingen master", err )			
+		return "master", "", 1
 	}
+//	step) hvis man hørte en master, returner "slave" + ip adresse  
+	read_ip:=string(buffer)
+    master_ip:= strings.Split(read_ip, "\x00")[0]
+	return "slave", master_ip, -1
+	
 }
 
 //		Listens for slaves and returns the slave connection
