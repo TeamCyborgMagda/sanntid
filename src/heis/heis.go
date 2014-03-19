@@ -4,7 +4,7 @@ import(
    "driver"
    "time"  
    "math"
-   "fmt"
+   //"fmt"
 )
 
 func HeisInit()(int, int, int){
@@ -60,19 +60,21 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
       direction = GetDirection(destination, current_floor)
       driver.SetSpeed(direction*300)
       
-      
-      cost_copy.Array = CostFunction(current_floor, direction, destination)
-      cost <- cost_copy
-    	//Loop where the elevator is in running mode.  
+      if(driver.GetFloor() != -1){
+      	cost_copy.Array = CostFunction(current_floor, direction, destination)
+      	cost <- cost_copy
+      }	//Loop where the elevator is in running mode.  
       for(destination != -1){
-      	fmt.Println(direction)
       	// Updates current floor and optimizes the destination
          destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array, elevator_nr)
          floor := driver.GetFloor() 
          if(floor != -1){
             current_floor = floor
          }
-         
+         if(driver.GetFloor() != -1){
+      		cost_copy.Array = CostFunction(current_floor, direction, destination)
+      		cost <- cost_copy
+      	 }	
          //If sentence with the requirements for a stop. 
          if( (current_floor == driver.GetFloor()) && ((direction==-1 && order_list_copy.Array[2*current_floor]==elevator_nr) || (direction==1 && order_list_copy.Array[2*current_floor+1]==elevator_nr) || command_list_copy.Array[current_floor] == 1 || (destination == current_floor))){
         

@@ -62,7 +62,8 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 					i += 1
 				}
 			case data := <- cost:
-				cost_array[0] = data
+				cost_temp := data
+				cost_array[0] = cost_temp
 		
 			}
 			time.Sleep(1*time.Millisecond)
@@ -76,10 +77,10 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 		
 		connections := make([]net.Conn,10)
 		nr_of_slaves := 0
-		
 			//			master loop, n = number of slaves 
  							
  		for (state=="master"){
+			
 			broadcast_writer.Write([]byte(ip+"\x00")) // her sender master ipen sin over broadcast
 			fmt.Println(ip)
 			elevator_number <- elevator_nr   // Må opprette channel
@@ -87,13 +88,14 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 			
 			if(nr_of_slaves == 0){
 				if CheckConnection(broadcast_listener, ip) == -1{
+					order_queue_array[0].Array = order_list_array
 					fmt.Println("Unexpected error: Another master on the net. Reassigning elevator state")
 					break 
 				} 
 			}
 			
 			slave_listener, err := SlaveListener(master_port)
-			slave_listener.SetDeadline(time.Now().Add(1500*time.Millisecond))
+			slave_listener.SetDeadline(time.Now().Add(1600*time.Millisecond))
 			connections[nr_of_slaves],err = slave_listener.Accept()
 			if err != nil{
 				fmt.Println("Finner ingen slaver: ", err)
@@ -238,7 +240,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 			fmt.Println("Heisen er en slave", elevator_nr)
 			buffer := make([]byte, 128)
 			
-			connections[0].SetDeadline(time.Now().Add(1*time.Second))
+			connections[0].SetDeadline(time.Now().Add(1500*time.Millisecond))
 			_, err := connections[0].Read(buffer)
 		
 			read_msg:=string(buffer)
@@ -273,9 +275,10 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				//order_list_yo = buffer //converted to driver.Data yay! ++ standariser navn yo
 			}else if strings.Split(read_msg, "\x00")[0]	 == "decr"{
 				elevator_nr -= 1
+				elevator_number <- elevator_nr
 			}else if err != nil{
 				connection_timeouts[0] += 1
-				if connection_timeouts[0] > 1{
+				if connection_timeouts[0] > 2{
 					connection_timeouts[0] = 0
 					fmt.Println("connection timeout, terminating connection to master")
 					break
@@ -289,34 +292,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 		time.Sleep(100*time.Millisecond)	
 	}
 }
-
-
-
-
-/*
-master løække:
- for N_slaves{
-	gi klarsignal
-	les melding
- 	hvis(error timeout) - inkrementer feil
- 		hvis feil = maks tillat. Fjern fra lista. 
- 	oppdater ordre
- 	broadkast ordre
  
- 
-
- 
- vente på send
- Hvis man venter for lenge i strekk, avbryt og se etter ny master. 
- sende oppdatterrtte lister
- lese broadcast for ny ordre_liste
- 
- 	
- 	
-
-
-
-*/ 
  
 //		initializes the pc's ip adress, standard master port and the UDP broadcast connection 
 func Init()(string, string, *net.UDPConn,*net.UDPConn,*net.UDPConn,*net.UDPConn, error) {
@@ -346,8 +322,23 @@ func Init()(string, string, *net.UDPConn,*net.UDPConn,*net.UDPConn,*net.UDPConn,
 //			initializes/reset state, resets/initialize number of slaves, and initialize master-ip, initialize connections array		
 func StateInit(conn *net.UDPConn)(string, string, int){
 	buffer := make([]byte,128)
+	fmt.Println("skal lete etter master nå")
+	
+/*
+	for {
+ 		conn.SetDeadline(time.Now().Add(10*time.Millisecond))
+ 		_, err := conn.Read(buffer)
+ 		if err != nil{
+ 			break
+ 		}
+ 		fmt.Println(err)
+ 		time.Sleep(1*time.Millisecond)
+ 	}
+*/
+	
 	conn.SetDeadline(time.Now().Add(6*time.Second))
 	_,err := conn.Read(buffer)
+	
 	if err != nil{
 //	step) hvis man ikke hører en master, returner "master" + "nil"
 		fmt.Println("finner ingen master", err )			
@@ -356,6 +347,7 @@ func StateInit(conn *net.UDPConn)(string, string, int){
 //	step) hvis man hørte en master, returner "slave" + ip adresse  
 	read_ip:=string(buffer)
     master_ip:= strings.Split(read_ip, "\x00")[0]
+    fmt.Println("den fant noe?: ", master_ip)
 	return "slave", master_ip, -1
 	
 }
@@ -370,7 +362,7 @@ func SlaveListener(port string)(*net.TCPListener, error){
 // 		attempts to connect to the given adress
 func ConnectMaster(adress string)(*net.TCPConn, error){
 	master_adr, err :=  net.ResolveTCPAddr("tcp", adress)
-	conn, err := net.DialTCP("tcp", nil, master_adr)
+	conn, err := net.DialTCP("tcp", nil, master_adr)   //spawne gorutine som drepes etter en gitt tid?
 	return conn, err 
 }
 
