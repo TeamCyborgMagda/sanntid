@@ -127,7 +127,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				}else{
 					connections[i].SetDeadline(time.Now().Add(100*time.Millisecond))
 					n, err = connections[i].Read(buffer)
-					fmt.Println("slave has sendt package")
+					fmt.Println("slave has sendt package", n)
 				}
 				var information pablo
 				err = json.Unmarshal(buffer[0:n], &information)
@@ -167,22 +167,28 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 			var lowest_cost [8]int
 			for j<8{
 				i = 0
-				lowest_cost[j] = 1
-				for i<nr_of_slaves{
+				lowest_cost[j] = 0
+				for i <= nr_of_slaves{
 					if(cost_array[i].Array[j] < cost_array[lowest_cost[j]].Array[j]){
-						lowest_cost[j] = i+1
+						lowest_cost[j] = i
 					}
 					i += 1
 				}
 				j += 1
 			}
+			fmt.Println(cost_array[0])
+			fmt.Println(cost_array[nr_of_slaves])
 			fmt.Println(lowest_cost)
 			j = 0
-			for j<8{ 	
-				order_list_array[j] = order_list_array[j]*(lowest_cost[j]) // 0 - (nr_of_slaves +1) based on the elevator with lowest cost. 
+			for j<8{ 
+				if order_list_array[j] != 0{	
+					order_list_array[j] = ((lowest_cost[j] + 1))  // 0 - (nr_of_slaves +1) based on the elevator with lowest cost. 
+				}else{
+					order_list_array[j] = 0
+				}
 				j += 1
 			}
-			fmt.Println(order_list_array)
+			
 			order_list_yo.Array = order_list_array
 			buffer, err = json.Marshal(order_list_yo)
 			if (err!=nil){
@@ -191,7 +197,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				broadcast_orders.Write(buffer) // broadcast sender order list??
 			}
 			
-			
+			fmt.Println(order_list_yo.Array)
 			order_list <- order_list_yo
 			order_list_lights <- order_list_yo
 			
@@ -223,13 +229,12 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 			fmt.Println("Heisen er en slave", elevator_nr)
 			buffer := make([]byte, 128)
 			
-			connections[0].SetDeadline(time.Now().Add(2*time.Second))
+			connections[0].SetDeadline(time.Now().Add(1*time.Second))
 			_, err := connections[0].Read(buffer)
-			fmt.Println(string(buffer))
+		
 			read_msg:=string(buffer)
 			if strings.Split(read_msg, "\x00")[0]	 == "send"{
-				fmt.Println("recieved send command")
-
+				connection_timeout[0] = 0	//kompensasjon for å gjøre slaven raskere.
 				trans.Cost = cost_array[0].Array
 				trans.OrderQueue = order_queue_array[0].Array
 				trans.RemoveOrder = remove_order_array[0].Array
@@ -239,6 +244,8 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 					fmt.Println("klarte ikke pakke ned cost, order queue og remove orders: ", err)
 				}else{
 					connections[0].Write(buffer)
+					order_queue_array[0] = driver.DataInit()
+					remove_order_array[0] = driver.DataInit()
 				}				
 				n, err := recieve_orders.Read(buffer)
 				var new_orders driver.Data // her skal man lese order list fra broadcast. Hvor/når sendes ip?
@@ -246,7 +253,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				if (err != nil){
 					fmt.Println("klarte ikke pakke opp order list: ", err)
 				}else{
-					
+					fmt.Println(new_orders.Array)
 					order_list_lights <- new_orders 
 					order_list <- new_orders
 					
@@ -266,10 +273,10 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 			}
 			
 			
-			time.Sleep(10*time.Millisecond)
+			time.Sleep(1*time.Millisecond)
 //			HandleMastersOrders()
 		}
-		time.Sleep(1000*time.Millisecond)	
+		time.Sleep(100*time.Millisecond)	
 	}
 }
 

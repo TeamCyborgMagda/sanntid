@@ -3,8 +3,8 @@ package main
 import (
     //"iomodule" 
     "fmt"
-    "heis"
-    //"driver"
+    //"heis"
+    "driver"
     //"encoding/json"
     
     //"time"
@@ -14,13 +14,8 @@ import (
 
 func main(){
 
-	current_floor := 1
-	direction := 1
-	destination := 3
-	
-	fmt.Println(heis.CostFunction(current_floor,direction,destination))
 
-/*
+
 	nr_of_slaves := 1
 	order_list_array := [8]int{0,0,0,0,0,0,0,0}
 	var (
@@ -39,7 +34,7 @@ func main(){
 	cost1.Array = [8]int{4,4,3,1,2,0,1,1}
 	cost2.Array = [8]int{0,0,1,1,2,2,3,3}
 	queue1.Array = [8]int{0,0,0,0,0,0,0,0}
-	queue2.Array = [8]int{0,0,1,1,0,0,0,0}
+	queue2.Array = [8]int{0,0,1,1,0,1,0,0}
 	order_queue_array[0] = queue1
 	order_queue_array[1] = queue2
 	remove_order_array[0] = remove1
@@ -85,7 +80,8 @@ func main(){
 		order_list_array[j] = order_list_array[j]*(lowest_cost[j] + 1) // 0 - (nr_of_slaves +1) based on the elevator with lowest cost. 
 		j += 1
 	}
-	fmt.Println(order_list)
-*/
+	fmt.Println(lowest_cost)
+	fmt.Println(order_list_array)
+
 }
 
