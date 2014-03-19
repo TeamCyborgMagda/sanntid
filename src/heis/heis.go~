@@ -4,7 +4,7 @@ import(
    "driver"
    "time"  
    "math"
-   //"fmt"
+   "fmt"
 )
 
 func HeisInit()(int, int, int){
@@ -59,14 +59,15 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
       // decides direction required to reach destination from current floor.
       direction = GetDirection(destination, current_floor)
       driver.SetSpeed(direction*300)
+      fmt.Println(direction)
       
       
       cost_copy.Array = CostFunction(current_floor, direction, destination)
       cost <- cost_copy
-      
+      fmt.Println("kommer meg til kjørbar kode")
     	//Loop where the elevator is in running mode.  
       for(destination != -1){
-      	
+      	fmt.Println(direction)
       	// Updates current floor and optimizes the destination
          destination = GetDestination(direction, current_floor, order_list_copy.Array, command_list_copy.Array, elevator_nr)
          floor := driver.GetFloor() 
@@ -78,6 +79,8 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
          if( (current_floor == driver.GetFloor()) && ((direction==-1 && order_list_copy.Array[2*current_floor]==elevator_nr) || (direction==1 && order_list_copy.Array[2*current_floor+1]==elevator_nr) || command_list_copy.Array[current_floor] == 1 || (destination == current_floor))){
         
             //stopping the elevator
+            driver.SetSpeed(-1* direction*300)
+            time.Sleep(15*time.Millisecond)
             driver.SetSpeed(0)
           	
           	//Sending what orders have been accomplished. 

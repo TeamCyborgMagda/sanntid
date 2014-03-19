@@ -13,6 +13,13 @@ type Data struct {                        //Burde deklareres i en fil som alle m
     Array [8]int
 }
 
+func DataInit()(Data){
+   var data Data
+   data.Array = [8]int{0,0,0,0,0,0,0,0}
+   return data
+}
+
+
 var button_adress = [12]int{FLOOR_UP1, FLOOR_DOWN1, FLOOR_COMMAND1, FLOOR_UP2, FLOOR_DOWN2, FLOOR_COMMAND2, FLOOR_UP3, FLOOR_DOWN3, FLOOR_COMMAND3, FLOOR_UP4, FLOOR_DOWN4, FLOOR_COMMAND4}
 // 0-2 = first floor, 3-5 = second floor, 6-8 = third floor, 9-11 = fourth floor
 

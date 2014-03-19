@@ -76,7 +76,8 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 		
 		connections := make([]net.Conn,10)
 		nr_of_slaves := 0
- 				//			master loop, n = number of slaves 
+		
+			//			master loop, n = number of slaves 
  							
  		for (state=="master"){
 			broadcast_writer.Write([]byte(ip+"\x00")) // her sender master ipen sin over broadcast
@@ -84,8 +85,15 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 			elevator_number <- elevator_nr   // Må opprette channel
 			fmt.Println("heisen har nr: ", elevator_nr, "og har: ", nr_of_slaves, " slaver")
 			
+			if(nr_of_slaves == 0){
+				if CheckConnection(broadcast_listener, ip) == -1{
+					fmt.Println("Unexpected error: Another master on the net. Reassigning elevator state")
+					break 
+				} 
+			}
+			
 			slave_listener, err := SlaveListener(master_port)
-			slave_listener.SetDeadline(time.Now().Add(1*time.Second).Add(500*time.Millisecond))
+			slave_listener.SetDeadline(time.Now().Add(1500*time.Millisecond))
 			connections[nr_of_slaves],err = slave_listener.Accept()
 			if err != nil{
 				fmt.Println("Finner ingen slaver: ", err)
@@ -120,7 +128,8 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 							
 							j += 1 
 						}
-						fmt.Println("Slave number: ", i, "is inactive, teminating connection") 
+						fmt.Println("Slave number: ", i, "is inactive, teminating connection")
+						
 						nr_of_slaves-= 1
 					}
 					continue
@@ -254,6 +263,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 					fmt.Println("klarte ikke pakke opp order list: ", err)
 				}else{
 					fmt.Println(new_orders.Array)
+					order_list_array = new_orders.Array
 					order_list_lights <- new_orders 
 					order_list <- new_orders
 					
@@ -364,37 +374,22 @@ func ConnectMaster(adress string)(*net.TCPConn, error){
 	return conn, err 
 }
 
-/*
-func CheckConnection(state string, master_ip string, broadcast_listener *net.UDPConn, ip string)(int){
+
+func CheckConnection(broadcast_listener *net.UDPConn, ip string)(int){
 	buffer := make([]byte, 128)
 	var read_ip string	
-	if state == "slave"{
-		broadcast_listener.SetDeadline(time.Now().Add(400*time.Millisecond))		
-		_,err := broadcast_listener.Read(buffer)
-		if err != nil{
-			return 0
-		}		
-		read_ip =string(buffer)
-        master_ip_r:= strings.Split(read_ip, "\x00")[0]
-		if master_ip_r != master_ip{
-			return 0
-		}
+	broadcast_listener.SetDeadline(time.Now().Add(200*time.Millisecond))		
+	_,err := broadcast_listener.Read(buffer)
+	if err != nil{
+		return 0
 	}
-	if state == "master"{
-		broadcast_listener.SetDeadline(time.Now().Add(400*time.Millisecond))		
-		_,err := broadcast_listener.Read(buffer)
-		read_ip := string(buffer)				
-		if err != nil{
-			fmt.Println("skjekk: ", err)
-		}		
-		read_ip =string(buffer)
-        master_ip_r:= strings.Split(read_ip, "\x00")[0]
-		if master_ip_r != ip{
-			fmt.Println("nummer to trigger også!: ", master_ip_r)
-		}
+	read_ip =string(buffer)
+   master_ip_r:= strings.Split(read_ip, "\x00")[0]
+	if master_ip_r != ip{
+			return -1
 	}
 	return 1
  
 }
-*/
+
 
