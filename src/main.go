@@ -31,7 +31,7 @@ func main(){
   
    for {
       
-      time.Sleep(time.Second)
+      time.Sleep(time.Millisecond)
    }
    
 }

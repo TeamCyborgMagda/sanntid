@@ -18,19 +18,6 @@ type pablo struct{
 
 
 func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost chan driver.Data, elevator_number chan int, order_list chan driver.Data, order_list_lights chan driver.Data){
-	// temporary variables
-	/*
-	var(
-		//order_list chan driver.Data
-		order_queue_copy driver.Data
-		remove_order_copy driver.Data
-		cost_copy driver.Data
-	)
-	
-	order_queue_copy = driver.DataInit()
-	remove_order_copy = driver.DataInit()
-	cost_copy = driver.DataInit()
-*/
 	var (
 		order_queue_array [10]driver.Data //masters array av alle order_queue fått av slavene
 		cost_array [10]driver.Data //masters array av alle cost fått av slavene
@@ -46,7 +33,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 	if err != nil{return}
 	
 	connection_timeouts := [10]int{0,0,0,0,0,0,0,0,0,0}
-	
+	bad_master := ""
  
 	go func(){
 		for{
@@ -114,7 +101,8 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				if err != nil{
 					connection_timeouts[i] += 1
 					if (connection_timeouts[i] > 3){
-					fmt.Println("connection timeout for slave: ", i)
+						fmt.Println("connection timeout for slave: ", i)
+						connections[i].Close()
 						j := i
 						k := nr_of_slaves
 						for j < k{
@@ -144,6 +132,27 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				err = json.Unmarshal(buffer[0:n], &information)
 				if (err != nil){
 					fmt.Println("klarte ikke pakke opp cost, order queue og remover orders: ", err)
+					connection_timeouts[i] += 1
+					if connection_timeouts[i] > 3{
+						fmt.Println("too many wrong messages from slave, terminating connection")
+						connections[i].Close()
+						j := i
+						k := nr_of_slaves
+						for j < k{
+							connections[j] = connections[j+1]
+							if(j < nr_of_slaves -1){
+								connections[j].SetDeadline(time.Now().Add(1*time.Second))
+								_, err1 := connections[j].Write([]byte("decr\x00"))
+								if(err1 != nil){
+									fmt.Println("error updating connection list")
+									continue 
+								}
+							}
+							
+							j += 1 
+						}
+						nr_of_slaves -= 1
+					}		
 				}else{
 					cost_array[i+1].Array = information.Cost
 					order_queue_array[i+1].Array = information.OrderQueue
@@ -220,9 +229,14 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 
 
  		if state == "slave" {
+ 			if bad_master == master_adress{
+ 				fmt.Println("Trying again to confirm correct master adress")
+ 				bad_master = ""
+ 				continue 
+ 			}
 			connections[0],err = ConnectMaster(master_adress + master_port)
 			if err != nil{
-				fmt.Println("Cannot connect to master: ", conn_err);
+				fmt.Println("Cannot connect to master: ", err);
 				continue
 			}
 			buffer := make([]byte,128)
@@ -280,7 +294,9 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				connection_timeouts[0] += 1
 				if connection_timeouts[0] > 2{
 					connection_timeouts[0] = 0
+					bad_master = master_adress
 					fmt.Println("connection timeout, terminating connection to master")
+					connections[0].Close()
 					break
 				}
 			}

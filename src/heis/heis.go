@@ -4,7 +4,7 @@ import(
    "driver"
    "time"  
    "math"
-   //"fmt"
+  // "fmt"
 )
 
 func HeisInit()(int, int, int){
@@ -200,10 +200,12 @@ func CostFunction(current_floor int,direction int, destination int, order_list [
       i += 1
    }
    i = 0
+   
    for i<8{
       if order_list[i] == elevator_nr{
          cost[i] = 0
       }
+      i += 1
    }
    
    return cost
