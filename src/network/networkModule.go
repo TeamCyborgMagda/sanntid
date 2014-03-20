@@ -324,17 +324,7 @@ func StateInit(conn *net.UDPConn)(string, string, int){
 	buffer := make([]byte,128)
 	fmt.Println("skal lete etter master nå")
 	
-/*
-	for {
- 		conn.SetDeadline(time.Now().Add(10*time.Millisecond))
- 		_, err := conn.Read(buffer)
- 		if err != nil{
- 			break
- 		}
- 		fmt.Println(err)
- 		time.Sleep(1*time.Millisecond)
- 	}
-*/
+
 	
 	conn.SetDeadline(time.Now().Add(6*time.Second))
 	_,err := conn.Read(buffer)
@@ -362,8 +352,8 @@ func SlaveListener(port string)(*net.TCPListener, error){
 // 		attempts to connect to the given adress
 func ConnectMaster(adress string)(*net.TCPConn, error){
 	master_adr, err :=  net.ResolveTCPAddr("tcp", adress)
-	conn, err := net.DialTCP("tcp", nil, master_adr)   //spawne gorutine som drepes etter en gitt tid?
-	return conn, err 
+	conn, err := net.DialTCP("tcp", nil, master_adr)
+	return conn, err
 }
 
 

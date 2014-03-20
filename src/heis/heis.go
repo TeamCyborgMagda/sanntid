@@ -61,7 +61,7 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
       driver.SetSpeed(direction*300)
       
       if(driver.GetFloor() != -1){
-      	cost_copy.Array = CostFunction(current_floor, direction, destination)
+      	cost_copy.Array = CostFunction(current_floor, direction, destination, order_list_copy.Array, elevator_nr)
       	cost <- cost_copy
       }	//Loop where the elevator is in running mode.  
       for(destination != -1){
@@ -72,7 +72,7 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
             current_floor = floor
          }
          if(driver.GetFloor() != -1){
-      		cost_copy.Array = CostFunction(current_floor, direction, destination)
+      		cost_copy.Array = CostFunction(current_floor, direction, destination, order_list_copy.Array, elevator_nr)
       		cost <- cost_copy
       	 }	
          //If sentence with the requirements for a stop. 
@@ -167,7 +167,7 @@ func GetDestination(direction int, current_floor int, order_list [8]int, command
 }
 
 
-func CostFunction(current_floor int,direction int, destination int)([8]int){
+func CostFunction(current_floor int,direction int, destination int, order_list [8]int, elevator_nr int)([8]int){
    i := 0
    var cost [8]int
    for i<8{
@@ -199,6 +199,13 @@ func CostFunction(current_floor int,direction int, destination int)([8]int){
       
       i += 1
    }
+   i = 0
+   for i<8{
+      if order_list[i] == elevator_nr{
+         cost[i] = 0
+      }
+   }
+   
    return cost
 }
 
