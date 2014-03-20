@@ -76,15 +76,15 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
       		cost <- cost_copy
       	 }	
          //If sentence with the requirements for a stop. 
-         if( (current_floor == driver.GetFloor()) && ((direction==-1 && order_list_copy.Array[2*current_floor]==elevator_nr) || (direction==1 && order_list_copy.Array[2*current_floor+1]==elevator_nr) || command_list_copy.Array[current_floor] == 1 || (destination == current_floor))){
+         if( (current_floor == driver.GetFloor()) && ((direction==-1 && order_list_copy.Array[2*current_floor]==elevator_nr) || (direction==1 && order_list_copy.Array[2*current_floor+1]==elevator_nr) || command_list_copy.Array[current_floor] == 1 /*|| (destination == current_floor)*/)){
         
             //stopping the elevator
             driver.SetSpeed(-1* direction*300)
             time.Sleep(15*time.Millisecond)
             driver.SetSpeed(0)
           	
-          	//Sending what orders have been accomplished. 
-            remove_orders.Array, remove_commands.Array = RemoveOrders(current_floor, direction, destination)
+          	//Sending what orders have been accomplished.
+          	remove_orders.Array, remove_commands.Array = RemoveOrders(current_floor, direction, destination)
             remove_order <- remove_orders
             remove_command <- remove_commands
             
@@ -92,6 +92,7 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
             driver.SetDoorLamp(1)
             time.Sleep(3*time.Second)
             driver.SetDoorLamp(0)
+            
             
             //resets the destination if it is the current floor.
             if current_floor == destination{
@@ -205,6 +206,7 @@ func CostFunction(current_floor int,direction int, destination int, order_list [
       if order_list[i] == elevator_nr{
          cost[i] = 0
       }
+      i += 1
    }
    
    return cost
@@ -220,8 +222,14 @@ func RemoveOrders(current_floor int,direction int, destination int)([8]int,[8]in
          remove_command[i] = 1
          if (destination == i){
          	remove_command[i] = 1
-         	remove_order[i*2] = 1
-         	remove_order[i*2+1] = 1
+         	if (direction == -1 || i == 3){
+         		remove_order[i*2] = 1
+         	}else if (direction == 1 || i == 0){
+         		remove_order[i*2+1] = 1
+         	}else{
+         		remove_order[i*2] = 1
+         		remove_order[i*2+1] = 1
+         	}
          	
          }else if (direction == 1){
             remove_order[i*2+1] = 1

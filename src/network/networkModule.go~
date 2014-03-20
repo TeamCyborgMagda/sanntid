@@ -51,14 +51,12 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 			case data := <- cost:
 				cost_temp := data
 				cost_array[0] = cost_temp
-		
 			}
 			time.Sleep(1*time.Millisecond)
 		}
 	}()
 	
 	
-		
 	for{
 		state, master_adress, elevator_nr := StateInit(broadcast_listener)	//bestemme funksjon
 		
@@ -161,7 +159,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				
 				i += 1
 			}
-			// assigning orders
+			//assigning orders
 			i = 0
 			j := 0
 			for i <= nr_of_slaves{
@@ -292,7 +290,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				elevator_number <- elevator_nr
 			}else if err != nil{
 				connection_timeouts[0] += 1
-				if connection_timeouts[0] > 2{
+				if connection_timeouts[0] > 3{
 					connection_timeouts[0] = 0
 					bad_master = master_adress
 					fmt.Println("connection timeout, terminating connection to master")

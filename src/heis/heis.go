@@ -83,8 +83,8 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
             time.Sleep(15*time.Millisecond)
             driver.SetSpeed(0)
           	
-          	//Sending what orders have been accomplished. 
-            remove_orders.Array, remove_commands.Array = RemoveOrders(current_floor, direction, destination)
+          	//Sending what orders have been accomplished.
+          	remove_orders.Array, remove_commands.Array = RemoveOrders(current_floor, direction, destination)
             remove_order <- remove_orders
             remove_command <- remove_commands
             
@@ -92,6 +92,7 @@ func Heis(order_list chan driver.Data, command_list chan driver.Data, cost chan 
             driver.SetDoorLamp(1)
             time.Sleep(3*time.Second)
             driver.SetDoorLamp(0)
+            
             
             //resets the destination if it is the current floor.
             if current_floor == destination{
@@ -221,8 +222,14 @@ func RemoveOrders(current_floor int,direction int, destination int)([8]int,[8]in
          remove_command[i] = 1
          if (destination == i){
          	remove_command[i] = 1
-         	remove_order[i*2] = 1
-         	remove_order[i*2+1] = 1
+         	if (direction == -1 || i == 3){
+         		remove_order[i*2] = 1
+         	}else if (direction == 1 || i == 0){
+         		remove_order[i*2+1] = 1
+         	}else{
+         		remove_order[i*2] = 1
+         		remove_order[i*2+1] = 1
+         	}
          	
          }else if (direction == 1){
             remove_order[i*2+1] = 1
