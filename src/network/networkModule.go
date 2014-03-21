@@ -25,6 +25,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 		trans pablo // brukes til å sende cost, order_queue og remove_order fra slave til master
 		order_list_array [8]int //lista som lages av master og sendes til slavene
 		order_list_yo driver.Data // ferdig ordreliste i Dataformat
+		
 	)
 
 //udefinert state loop,	Lurt å ha heis funksjon sammen med ip?, bare ha ting i init som man er SIKKER på at kun skal kjøres EN gang?
@@ -33,7 +34,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 	if err != nil{return}
 	
 	connection_timeouts := [10]int{0,0,0,0,0,0,0,0,0,0}
-	bad_master := ""
+	
  
 	go func(){
 		for{
@@ -80,14 +81,15 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 			}
 			
 			slave_listener, err := SlaveListener(master_port)
-			slave_listener.SetDeadline(time.Now().Add(1600*time.Millisecond))
+			slave_listener.SetDeadline(time.Now().Add(1500*time.Millisecond))
 			connections[nr_of_slaves],err = slave_listener.Accept()
 			if err != nil{
-				fmt.Println("Finner ingen slaver: ", err)
+				//fmt.Println("Finner ingen slaver: ", err)
 			}else{
 				nr := strconv.Itoa(nr_of_slaves + 2)
 				connections[nr_of_slaves].Write([]byte(nr+"\x00"))  //need int to string conversion
 				nr_of_slaves = nr_of_slaves + 1
+				fmt.Println(nr_of_slaves)
    			}
    			
 			i := 0
@@ -116,8 +118,8 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 							
 							j += 1 
 						}
-						fmt.Println("Slave number: ", i, "is inactive, teminating connection")
-						
+						fmt.Println("Slave number: ", i+1, "is inactive, teminating connection")
+						connection_timeouts[i] = 0
 						nr_of_slaves-= 1
 					}
 					continue
@@ -149,6 +151,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 							
 							j += 1 
 						}
+						connection_timeouts[i] = 0
 						nr_of_slaves -= 1
 					}		
 				}else{
@@ -194,9 +197,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				}
 				j += 1
 			}
-			fmt.Println(cost_array[0])
-			fmt.Println(cost_array[nr_of_slaves])
-			fmt.Println(lowest_cost)
+			
 			j = 0
 			for j<8{ 
 				if order_list_array[j] != 0{	
@@ -215,7 +216,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				broadcast_orders.Write(buffer) // broadcast sender order list??
 			}
 			
-			fmt.Println(order_list_yo.Array)
+			
 			order_list <- order_list_yo
 			order_list_lights <- order_list_yo
 			
@@ -227,11 +228,6 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 
 
  		if state == "slave" {
- 			if bad_master == master_adress{
- 				fmt.Println("Trying again to confirm correct master adress")
- 				bad_master = ""
- 				continue 
- 			}
 			connections[0],err = ConnectMaster(master_adress + master_port)
 			if err != nil{
 				fmt.Println("Cannot connect to master: ", err);
@@ -266,6 +262,7 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				if err != nil{
 					fmt.Println("klarte ikke pakke ned cost, order queue og remove orders: ", err)
 				}else{
+					fmt.Println("Slave sending package: ", cost_array[0].Array) 
 					connections[0].Write(buffer)
 					order_queue_array[0] = driver.DataInit()
 					remove_order_array[0] = driver.DataInit()
@@ -290,9 +287,9 @@ func Network(order_queue chan driver.Data ,remove_order chan driver.Data ,cost c
 				elevator_number <- elevator_nr
 			}else if err != nil{
 				connection_timeouts[0] += 1
+				fmt.Println("Connections timeout: ", err)
 				if connection_timeouts[0] > 3{
 					connection_timeouts[0] = 0
-					bad_master = master_adress
 					fmt.Println("connection timeout, terminating connection to master")
 					connections[0].Close()
 					break
